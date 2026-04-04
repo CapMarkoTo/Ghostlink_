@@ -21,19 +21,20 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnHost"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
-        android:text="Создать группу (Host)"
+        android:layout_height="64dp"
+        android:layout_margin="16dp"
+        android:text="Создать чат (Host)"
         android:textSize="18sp"
-        android:layout_marginBottom="16dp"
-        app:cornerRadius="20dp" />
+        app:cornerRadius="16dp"
+        style="@style/Widget.Material3.Button" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnJoin"
-        style="@style/Widget.Material3.Button.TonalButton"
         android:layout_width="match_parent"
-        android:layout_height="72dp"
-        android:text="Присоединиться (Client)"
+        android:layout_height="64dp"
+        android:layout_marginHorizontal="16dp"
+        android:text="Присоединиться (Join)"
         android:textSize="18sp"
-        app:cornerRadius="20dp" />
-
+        app:cornerRadius="16dp"
+        style="@style/Widget.Material3.Button.TonalButton" />
 </LinearLayout>

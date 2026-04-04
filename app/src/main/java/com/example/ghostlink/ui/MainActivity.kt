@@ -45,6 +45,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Системные акцентные цвета
+        com.google.android.material.color.DynamicColors.applyToActivitiesIfAvailable(application)
+
         setContentView(R.layout.activity_main)
 
         bluetoothAdapter = getSystemService(BluetoothManager::class.java)?.adapter
