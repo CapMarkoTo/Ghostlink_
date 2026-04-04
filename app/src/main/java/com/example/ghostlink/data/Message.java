@@ -7,9 +7,10 @@ import androidx.room.PrimaryKey;
 public class Message {
     @PrimaryKey(autoGenerate = true)
     public int id;
+
     public String text;
     public long timestamp;
-    public boolean isMine; // true - мое сообщение, false - чужое
+    public boolean isMine;
 
     public Message(String text, long timestamp, boolean isMine) {
         this.text = text;
