@@ -1,9 +1,12 @@
 package com.example.ghostlink
 
-import android.bluetooth.BluetoothSocket
 import android.os.Bundle
+import android.view.View
 import android.widget.*
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import java.io.InputStream
 import java.io.OutputStream
 
@@ -17,8 +20,27 @@ class MessageActivity : AppCompatActivity() {
     private var isListening = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // 1. Включаем режим "от края до края"
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_message)
+
+        // 2. Настройка отступов для статус-бара и КЛАВИАТУРЫ
+        // Убедись, что в XML у корневого элемента стоит android:id="@+id/main"
+        val mainView = findViewById<View>(R.id.main)
+        ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+
+            // Сверху отступ от часов, снизу — от полоски жестов ИЛИ клавиатуры
+            v.setPadding(
+                systemBars.left,
+                systemBars.top,
+                systemBars.right,
+                maxOf(systemBars.bottom, imeInsets.bottom)
+            )
+            insets
+        }
 
         val listView = findViewById<ListView>(R.id.chatListView)
         val input = findViewById<EditText>(R.id.messageInput)
@@ -41,7 +63,7 @@ class MessageActivity : AppCompatActivity() {
             }
         } else {
             Toast.makeText(this, "Соединение не найдено", Toast.LENGTH_LONG).show()
-            finish() // Закрываем экран, если сокета нет
+            finish()
         }
 
         btnSend.setOnClickListener {
@@ -58,11 +80,14 @@ class MessageActivity : AppCompatActivity() {
             try {
                 val bytesToSend = message.toByteArray(Charsets.UTF_8)
                 outputStream?.write(bytesToSend)
-                outputStream?.flush() // Это "пинок" для байтов, чтобы они улетели
+                outputStream?.flush()
 
                 runOnUiThread {
                     messages.add("Вы: $message")
                     adapter.notifyDataSetChanged()
+                    // Прокрутка списка вниз при отправке
+                    val listView = findViewById<ListView>(R.id.chatListView)
+                    listView.setSelection(messages.size - 1)
                 }
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show() }
@@ -81,6 +106,9 @@ class MessageActivity : AppCompatActivity() {
                         runOnUiThread {
                             messages.add("Собеседник: $incomingMsg")
                             adapter.notifyDataSetChanged()
+                            // Прокрутка списка вниз при получении
+                            val listView = findViewById<ListView>(R.id.chatListView)
+                            listView.setSelection(messages.size - 1)
                         }
                     }
                 } catch (e: Exception) {
@@ -94,6 +122,5 @@ class MessageActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isListening = false
-        // Закрывать сокет здесь не будем, чтобы не прервать связь при повороте экрана
     }
 }
