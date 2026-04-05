@@ -5,37 +5,45 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center"
-    android:background="#F7F2FA"
-    android:padding="32dp">
+    android:paddingTop="48dp"
+    android:paddingHorizontal="24dp">
 
     <TextView
         android:id="@+id/titleText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="48dp"
         android:text="GhostLink BT"
+        android:textColor="?attr/colorPrimary"
         android:textSize="32sp"
         android:textStyle="bold"
-        android:textColor="#6750A4"
-        android:layout_marginBottom="48dp"/>
+        style="@style/TextAppearance.Material3.HeadlineLarge" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnHost"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:layout_margin="16dp"
-        android:text="Создать чат (Host)"
-        android:textSize="18sp"
-        app:cornerRadius="16dp"
-        style="@style/Widget.Material3.Button" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnJoin"
-        android:layout_width="match_parent"
-        android:layout_height="64dp"
-        android:layout_marginHorizontal="16dp"
-        android:text="Присоединиться (Join)"
-        android:textSize="18sp"
-        app:cornerRadius="16dp"
-        style="@style/Widget.Material3.Button.TonalButton" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnHost"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_margin="16dp"
+            android:text="Создать чат (Host)"
+            android:textSize="18sp"
+            app:cornerRadius="16dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnJoin"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginHorizontal="16dp"
+            android:text="Присоединиться (Join)"
+            android:textSize="18sp"
+            app:cornerRadius="16dp" />
+
+    </LinearLayout>
 </LinearLayout>

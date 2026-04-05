@@ -2,6 +2,10 @@
     <style name="Base.Theme.Ghostlink" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorOnPrimary">@color/onPrimary</item>
+
+        <item name="android:windowBackground">#FFFBFE</item>
+        <item name="android:statusBarColor">#FFFBFE</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
     <style name="Theme.Ghostlink" parent="Base.Theme.Ghostlink" />
 </resources>

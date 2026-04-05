@@ -12,11 +12,15 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.View // Добавлено
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge // Добавлено
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.view.ViewCompat // Добавлено
+import androidx.core.view.WindowInsetsCompat // Добавлено
 import android.bluetooth.BluetoothSocket
 import java.util.UUID
 
@@ -27,14 +31,23 @@ class DeviceListActivity : AppCompatActivity() {
     private val discoveredDevices = mutableListOf<BluetoothDevice>()
     private val deviceNames = mutableListOf<String>()
 
-    // ТОТ ЖЕ UUID, ЧТО И В MAIN ACTIVITY
     private val MY_UUID: UUID = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66")
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // 1. ВКЛЮЧАЕМ EDGE-TO-EDGE
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_device_list)
 
-        // ... инициализация адаптера и списка как раньше ...
+        // 2. НАСТРОЙКА ОТСТУПОВ (ИНСЕТОВ)
+        val mainView = findViewById<View>(R.id.main)
+        ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // Делаем отступ сверху чуть больше (на 20 пикселей), чтобы текст не прилипал к камере
+            v.setPadding(systemBars.left, systemBars.top + 20, systemBars.right, systemBars.bottom)
+            insets
+        }
+
         val bluetoothManager = getSystemService(BluetoothManager::class.java)
         bluetoothAdapter = bluetoothManager?.adapter
         val listView = findViewById<ListView>(R.id.devicesListView)
@@ -45,17 +58,12 @@ class DeviceListActivity : AppCompatActivity() {
         registerReceiver(receiver, filter)
         startScanning()
 
-        // ИЗМЕНЕННЫЙ КЛИК ПО СПИСКУ
         listView.setOnItemClickListener { _, _, position, _ ->
             val selectedDevice = discoveredDevices[position]
             Toast.makeText(this, "Подключение к ${selectedDevice.name}...", Toast.LENGTH_SHORT).show()
-
-            // Запускаем поток подключения
             ConnectThread(selectedDevice).start()
         }
     }
-
-    // --- ПОТОК КЛИЕНТА (КОПИРУЕМ СЮДА) ---
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
         private val mmSocket: BluetoothSocket? by lazy(LazyThreadSafetyMode.NONE) {
             if (ActivityCompat.checkSelfPermission(this@DeviceListActivity, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
