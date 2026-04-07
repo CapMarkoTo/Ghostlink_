@@ -1,10 +1,14 @@
 package com.example.ghostlink
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import java.io.InputStream
@@ -20,28 +24,23 @@ class MessageActivity : AppCompatActivity() {
     private var isListening = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 1. Включаем режим "от края до края"
+        // 1. Сначала настройки экрана
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_message)
 
-        // 2. Настройка отступов для статус-бара и КЛАВИАТУРЫ
-        // Убедись, что в XML у корневого элемента стоит android:id="@+id/main"
+        // 2. Настройка отступов для выреза камеры и КЛАВИАТУРЫ
         val mainView = findViewById<View>(R.id.main)
         ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-
-            // Сверху отступ от часов, снизу — от полоски жестов ИЛИ клавиатуры
-            v.setPadding(
-                systemBars.left,
-                systemBars.top,
-                systemBars.right,
-                maxOf(systemBars.bottom, imeInsets.bottom)
-            )
+            // Верх — системный бар, низ — максимум между баром и клавиатурой
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, maxOf(systemBars.bottom, imeInsets.bottom))
             insets
         }
 
+        // 3. Инициализация UI
+        val deviceNameTitle = findViewById<TextView>(R.id.deviceNameTitle)
         val listView = findViewById<ListView>(R.id.chatListView)
         val input = findViewById<EditText>(R.id.messageInput)
         val btnSend = findViewById<Button>(R.id.btnSend)
@@ -49,16 +48,24 @@ class MessageActivity : AppCompatActivity() {
         adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, messages)
         listView.adapter = adapter
 
-        // Получаем сокет из нашего сервиса
+        // 4. Работа с Bluetooth
         val socket = BluetoothService.connectedSocket
 
         if (socket != null && socket.isConnected) {
+            // Установка имени устройства в заголовок
             try {
+                // Проверка разрешения для Android 12+
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                    deviceNameTitle.text = "Чат: ${socket.remoteDevice.name ?: "Устройство"}"
+                } else {
+                    deviceNameTitle.text = "Чат: ${socket.remoteDevice.address}"
+                }
+
                 outputStream = socket.outputStream
                 inputStream = socket.inputStream
-                // Запускаем прослушку в отдельном потоке
                 listenForMessages()
             } catch (e: Exception) {
+                deviceNameTitle.text = "Чат: Ошибка"
                 Toast.makeText(this, "Ошибка потоков: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         } else {
@@ -85,9 +92,7 @@ class MessageActivity : AppCompatActivity() {
                 runOnUiThread {
                     messages.add("Вы: $message")
                     adapter.notifyDataSetChanged()
-                    // Прокрутка списка вниз при отправке
-                    val listView = findViewById<ListView>(R.id.chatListView)
-                    listView.setSelection(messages.size - 1)
+                    findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
                 }
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show() }
@@ -106,9 +111,7 @@ class MessageActivity : AppCompatActivity() {
                         runOnUiThread {
                             messages.add("Собеседник: $incomingMsg")
                             adapter.notifyDataSetChanged()
-                            // Прокрутка списка вниз при получении
-                            val listView = findViewById<ListView>(R.id.chatListView)
-                            listView.setSelection(messages.size - 1)
+                            findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
                         }
                     }
                 } catch (e: Exception) {

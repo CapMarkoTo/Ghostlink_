@@ -1,10 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="8dp">
+    android:paddingTop="48dp"
+    android:paddingHorizontal="16dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/deviceNameTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Чат: подключение..."
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="12dp"
+        style="@style/TextAppearance.Material3.HeadlineSmall" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/colorOutlineVariant"
+        android:layout_marginBottom="8dp" />
 
     <ListView
         android:id="@+id/chatListView"
@@ -20,23 +41,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingTop="8dp">
+        android:paddingTop="8dp"
+        android:gravity="bottom">
 
         <EditText
             android:id="@+id/messageInput"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:hint="Введите сообщение..."
+            android:hint="Сообщение..."
             android:inputType="textShortMessage"
-            android:maxLines="3" />
+            android:maxLines="3"
+            android:backgroundTint="?attr/colorPrimary" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSend"
+            style="@style/Widget.Material3.Button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Отправить"
-            style="@style/Widget.Material3.Button" />
+            android:layout_marginStart="8dp"
+            android:text="Отправить" />
     </LinearLayout>
 
 </LinearLayout>
