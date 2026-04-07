@@ -1,5 +1,10 @@
 package com.example.ghostlink
 
+import android.view.Gravity
+import android.graphics.Color
+import android.widget.LinearLayout
+import android.widget.TextView
+import com.example.ghostlink.R
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -16,20 +21,19 @@ import java.io.OutputStream
 
 class MessageActivity : AppCompatActivity() {
 
-    private lateinit var adapter: ArrayAdapter<String>
-    private val messages = mutableListOf<String>()
-
+    private lateinit var adapter: MessageAdapter // Было ArrayAdapter<String>
+    private val messages = mutableListOf<Message>() // Было mutableListOf<String>()
     private var outputStream: OutputStream? = null
     private var inputStream: InputStream? = null
     private var isListening = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // 1. Сначала настройки экрана
+        // Настройки экрана
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_message)
 
-        // 2. Настройка отступов для выреза камеры и КЛАВИАТУРЫ
+        // Настройка отступов для выреза камеры и КЛАВИАТУРЫ
         val mainView = findViewById<View>(R.id.main)
         ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -39,16 +43,17 @@ class MessageActivity : AppCompatActivity() {
             insets
         }
 
-        // 3. Инициализация UI
+        // Инициализация UI
         val deviceNameTitle = findViewById<TextView>(R.id.deviceNameTitle)
         val listView = findViewById<ListView>(R.id.chatListView)
         val input = findViewById<EditText>(R.id.messageInput)
         val btnSend = findViewById<Button>(R.id.btnSend)
 
-        adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, messages)
+        // Инициализация Адаптера
+        adapter = MessageAdapter(this, R.layout.item_message, messages)
         listView.adapter = adapter
 
-        // 4. Работа с Bluetooth
+        // Работа с Bluetooth
         val socket = BluetoothService.connectedSocket
 
         if (socket != null && socket.isConnected) {
@@ -81,7 +86,7 @@ class MessageActivity : AppCompatActivity() {
             }
         }
     }
-
+    // Отправка Сообщений
     private fun sendMessage(message: String) {
         Thread {
             try {
@@ -90,16 +95,19 @@ class MessageActivity : AppCompatActivity() {
                 outputStream?.flush()
 
                 runOnUiThread {
-                    messages.add("Вы: $message")
+                    // ТУТ ИЗМЕНЕНИЕ: создаем объект Message вместо строки
+                    messages.add(Message(message, true))
                     adapter.notifyDataSetChanged()
-                    findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
+
+                    val listView = findViewById<ListView>(R.id.chatListView)
+                    listView.setSelection(messages.size - 1)
                 }
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show() }
             }
         }.start()
     }
-
+    // Получение Сообщений
     private fun listenForMessages() {
         Thread {
             val buffer = ByteArray(1024)
@@ -109,9 +117,12 @@ class MessageActivity : AppCompatActivity() {
                     if (bytes > 0) {
                         val incomingMsg = String(buffer, 0, bytes)
                         runOnUiThread {
-                            messages.add("Собеседник: $incomingMsg")
+                            // ТУТ ИЗМЕНЕНИЕ: создаем объект Message с пометкой "чужой"
+                            messages.add(Message(incomingMsg, false))
                             adapter.notifyDataSetChanged()
-                            findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
+
+                            val listView = findViewById<ListView>(R.id.chatListView)
+                            listView.setSelection(messages.size - 1)
                         }
                     }
                 } catch (e: Exception) {
@@ -125,5 +136,28 @@ class MessageActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isListening = false
+    }
+}
+data class Message(val text: String, val isMine: Boolean)
+class MessageAdapter(context: android.content.Context, resource: Int, objects: List<Message>) :
+    ArrayAdapter<Message>(context, resource, objects) {
+
+    override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
+        val view = convertView ?: android.view.LayoutInflater.from(context).inflate(R.layout.item_message, parent, false)
+        val message = getItem(position)
+        val textView = view.findViewById<TextView>(R.id.messageText)
+        val container = view.findViewById<LinearLayout>(R.id.messageContainer)
+
+        textView.text = message?.text
+
+        if (message?.isMine == true) {
+            container.gravity = android.view.Gravity.END
+            textView.setBackgroundResource(R.drawable.bg_message_out)
+        } else {
+            container.gravity = android.view.Gravity.START
+            textView.setBackgroundResource(R.drawable.bg_message_in)
+        }
+
+        return view
     }
 }
