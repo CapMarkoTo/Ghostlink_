@@ -1,15 +1,14 @@
 package com.example.ghostlink
 
-import android.view.Gravity
-import android.graphics.Color
-import android.widget.LinearLayout
-import android.widget.TextView
-import com.example.ghostlink.R
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.view.LayoutInflater
+import android.content.Context
 import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -18,48 +17,49 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import java.io.InputStream
 import java.io.OutputStream
+import java.text.SimpleDateFormat
+import java.util.*
+
+// 1. Модель данных (вынесена из классов)
+data class Message(
+    val text: String,
+    val isMine: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
+)
 
 class MessageActivity : AppCompatActivity() {
 
-    private lateinit var adapter: MessageAdapter // Было ArrayAdapter<String>
-    private val messages = mutableListOf<Message>() // Было mutableListOf<String>()
+    private lateinit var adapter: MessageAdapter
+    private val messages = mutableListOf<Message>()
     private var outputStream: OutputStream? = null
     private var inputStream: InputStream? = null
     private var isListening = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Настройки экрана
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_message)
 
-        // Настройка отступов для выреза камеры и КЛАВИАТУРЫ
         val mainView = findViewById<View>(R.id.main)
         ViewCompat.setOnApplyWindowInsetsListener(mainView) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-            // Верх — системный бар, низ — максимум между баром и клавиатурой
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, maxOf(systemBars.bottom, imeInsets.bottom))
             insets
         }
 
-        // Инициализация UI
         val deviceNameTitle = findViewById<TextView>(R.id.deviceNameTitle)
         val listView = findViewById<ListView>(R.id.chatListView)
         val input = findViewById<EditText>(R.id.messageInput)
         val btnSend = findViewById<Button>(R.id.btnSend)
 
-        // Инициализация Адаптера
-        adapter = MessageAdapter(this, R.layout.item_message, messages)
+        adapter = MessageAdapter(this, messages)
         listView.adapter = adapter
 
-        // Работа с Bluetooth
         val socket = BluetoothService.connectedSocket
 
         if (socket != null && socket.isConnected) {
-            // Установка имени устройства в заголовок
             try {
-                // Проверка разрешения для Android 12+
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                     deviceNameTitle.text = "Чат: ${socket.remoteDevice.name ?: "Устройство"}"
                 } else {
@@ -86,7 +86,7 @@ class MessageActivity : AppCompatActivity() {
             }
         }
     }
-    // Отправка Сообщений
+
     private fun sendMessage(message: String) {
         Thread {
             try {
@@ -95,19 +95,16 @@ class MessageActivity : AppCompatActivity() {
                 outputStream?.flush()
 
                 runOnUiThread {
-                    // ТУТ ИЗМЕНЕНИЕ: создаем объект Message вместо строки
                     messages.add(Message(message, true))
                     adapter.notifyDataSetChanged()
-
-                    val listView = findViewById<ListView>(R.id.chatListView)
-                    listView.setSelection(messages.size - 1)
+                    findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
                 }
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(this, "Ошибка отправки", Toast.LENGTH_SHORT).show() }
             }
         }.start()
     }
-    // Получение Сообщений
+
     private fun listenForMessages() {
         Thread {
             val buffer = ByteArray(1024)
@@ -117,12 +114,9 @@ class MessageActivity : AppCompatActivity() {
                     if (bytes > 0) {
                         val incomingMsg = String(buffer, 0, bytes)
                         runOnUiThread {
-                            // ТУТ ИЗМЕНЕНИЕ: создаем объект Message с пометкой "чужой"
                             messages.add(Message(incomingMsg, false))
                             adapter.notifyDataSetChanged()
-
-                            val listView = findViewById<ListView>(R.id.chatListView)
-                            listView.setSelection(messages.size - 1)
+                            findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
                         }
                     }
                 } catch (e: Exception) {
@@ -138,24 +132,42 @@ class MessageActivity : AppCompatActivity() {
         isListening = false
     }
 }
-data class Message(val text: String, val isMine: Boolean)
-class MessageAdapter(context: android.content.Context, resource: Int, objects: List<Message>) :
-    ArrayAdapter<Message>(context, resource, objects) {
 
-    override fun getView(position: Int, convertView: View?, parent: android.view.ViewGroup): View {
-        val view = convertView ?: android.view.LayoutInflater.from(context).inflate(R.layout.item_message, parent, false)
+// 2. Адаптер
+class MessageAdapter(context: Context, private val objects: List<Message>) :
+    ArrayAdapter<Message>(context, R.layout.item_message, objects) {
+
+    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(context).inflate(R.layout.item_message, parent, false)
         val message = getItem(position)
+
         val textView = view.findViewById<TextView>(R.id.messageText)
+        val timeView = view.findViewById<TextView>(R.id.messageTime)
         val container = view.findViewById<LinearLayout>(R.id.messageContainer)
+        val bubble = view.findViewById<LinearLayout>(R.id.bubbleBackground) // Наш новый ID
 
         textView.text = message?.text
+        timeView.text = if (message != null) timeFormat.format(Date(message.timestamp)) else ""
 
         if (message?.isMine == true) {
-            container.gravity = android.view.Gravity.END
-            textView.setBackgroundResource(R.drawable.bg_message_out)
+            container.gravity = Gravity.END
+            // Делаем разные отступы, чтобы бабл не висел по центру
+            val params = bubble.layoutParams as LinearLayout.LayoutParams
+            params.marginStart = 60 // Большой отступ слева, чтобы прижать вправо
+            params.marginEnd = 0
+            bubble.layoutParams = params
+
+            bubble.setBackgroundResource(R.drawable.bg_message_out)
         } else {
-            container.gravity = android.view.Gravity.START
-            textView.setBackgroundResource(R.drawable.bg_message_in)
+            container.gravity = Gravity.START
+            val params = bubble.layoutParams as LinearLayout.LayoutParams
+            params.marginEnd = 60 // Большой отступ справа
+            params.marginStart = 0
+            bubble.layoutParams = params
+
+            bubble.setBackgroundResource(R.drawable.bg_message_in)
         }
 
         return view
