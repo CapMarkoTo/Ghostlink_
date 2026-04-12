@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:background="?android:attr/windowBackground">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ваше устройство видно как:"
+        android:textSize="16sp"
+        android:alpha="0.7" />
+
+    <TextView
+        android:id="@+id/deviceNameTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Device Name"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:layout_marginTop="8dp" />
+
+    <ProgressBar
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="48dp"
+        android:indeterminateTint="?attr/colorPrimary" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ожидание входящего подключения..."
+        android:layout_marginTop="16dp"
+        android:textSize="14sp"
+        android:textStyle="italic" /> <Button
+    android:id="@+id/btnCancel"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="64dp"
+    android:text="Отмена"
+    android:backgroundTint="#FF5252"
+    android:textColor="@android:color/white" />
+
+</LinearLayout>
