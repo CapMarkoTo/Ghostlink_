@@ -15,12 +15,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.button.MaterialButton
 import java.io.InputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
-// 1. Модель данных (вынесена из классов)
 data class Message(
     val text: String,
     val isMine: Boolean,
@@ -48,16 +48,25 @@ class MessageActivity : AppCompatActivity() {
             insets
         }
 
+        // Элементы управления
         val deviceNameTitle = findViewById<TextView>(R.id.deviceNameTitle)
         val listView = findViewById<ListView>(R.id.chatListView)
         val input = findViewById<EditText>(R.id.messageInput)
-        val btnSend = findViewById<Button>(R.id.btnSend)
+        val btnSend = findViewById<MaterialButton>(R.id.btnSend)
+
+        // PictoChat элементы
+        val btnOpenDrawing = findViewById<MaterialButton>(R.id.btnOpenDrawing)
+        val drawingContainer = findViewById<LinearLayout>(R.id.drawingContainer)
+        val drawingView = findViewById<DrawingView>(R.id.drawingView)
+        val btnClear = findViewById<Button>(R.id.btnClear)
+        val btnSendDrawing = findViewById<Button>(R.id.btnSendDrawing)
 
         adapter = MessageAdapter(this, messages)
         listView.adapter = adapter
 
         val socket = BluetoothService.connectedSocket
 
+        // Настройка Bluetooth потоков
         if (socket != null && socket.isConnected) {
             try {
                 if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
@@ -65,25 +74,47 @@ class MessageActivity : AppCompatActivity() {
                 } else {
                     deviceNameTitle.text = "Чат: ${socket.remoteDevice.address}"
                 }
-
                 outputStream = socket.outputStream
                 inputStream = socket.inputStream
                 listenForMessages()
             } catch (e: Exception) {
                 deviceNameTitle.text = "Чат: Ошибка"
-                Toast.makeText(this, "Ошибка потоков: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         } else {
-            Toast.makeText(this, "Соединение не найдено", Toast.LENGTH_LONG).show()
             finish()
         }
 
+        // --- ЛОГИКА КНОПОК ---
+
+        // Отправка текста
         btnSend.setOnClickListener {
             val msg = input.text.toString().trim()
             if (msg.isNotEmpty()) {
                 sendMessage(msg)
                 input.setText("")
             }
+        }
+
+        // Открыть/закрыть рисовалку
+        btnOpenDrawing.setOnClickListener {
+            if (drawingContainer.visibility == View.GONE) {
+                drawingContainer.visibility = View.VISIBLE
+            } else {
+                drawingContainer.visibility = View.GONE
+            }
+        }
+
+        // Очистить холст
+        btnClear.setOnClickListener {
+            drawingView.clearCanvas()
+        }
+
+        // Отправить рисунок
+        btnSendDrawing.setOnClickListener {
+            // Пока отправляем просто текст, завтра научим передавать байты картинки
+            sendMessage("[Рисованное послание]")
+            drawingView.clearCanvas()
+            drawingContainer.visibility = View.GONE
         }
     }
 
@@ -133,7 +164,6 @@ class MessageActivity : AppCompatActivity() {
     }
 }
 
-// 2. Адаптер
 class MessageAdapter(context: Context, private val objects: List<Message>) :
     ArrayAdapter<Message>(context, R.layout.item_message, objects) {
 
@@ -146,30 +176,26 @@ class MessageAdapter(context: Context, private val objects: List<Message>) :
         val textView = view.findViewById<TextView>(R.id.messageText)
         val timeView = view.findViewById<TextView>(R.id.messageTime)
         val container = view.findViewById<LinearLayout>(R.id.messageContainer)
-        val bubble = view.findViewById<LinearLayout>(R.id.bubbleBackground) // Наш новый ID
+        val bubble = view.findViewById<LinearLayout>(R.id.bubbleBackground)
 
         textView.text = message?.text
         timeView.text = if (message != null) timeFormat.format(Date(message.timestamp)) else ""
 
         if (message?.isMine == true) {
             container.gravity = Gravity.END
-            // Делаем разные отступы, чтобы бабл не висел по центру
             val params = bubble.layoutParams as LinearLayout.LayoutParams
-            params.marginStart = 60 // Большой отступ слева, чтобы прижать вправо
+            params.marginStart = 60
             params.marginEnd = 0
             bubble.layoutParams = params
-
             bubble.setBackgroundResource(R.drawable.bg_message_out)
         } else {
             container.gravity = Gravity.START
             val params = bubble.layoutParams as LinearLayout.LayoutParams
-            params.marginEnd = 60 // Большой отступ справа
+            params.marginEnd = 60
             params.marginStart = 0
             bubble.layoutParams = params
-
             bubble.setBackgroundResource(R.drawable.bg_message_in)
         }
-
         return view
     }
 }

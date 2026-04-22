@@ -38,29 +38,83 @@
         android:transcriptMode="alwaysScroll" />
 
     <LinearLayout
+        android:id="@+id/drawingContainer"
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:background="#F5F5F5"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="16dp">
+
+        <com.example.ghostlink.DrawingView
+            android:id="@+id/drawingView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_margin="8dp"
+            android:background="@android:color/white" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:padding="4dp">
+
+            <Button
+                android:id="@+id/btnClear"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Стереть"
+                style="@style/Widget.Material3.Button.TextButton" />
+
+            <Button
+                android:id="@+id/btnSendDrawing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Готово" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingTop="8dp"
-        android:gravity="bottom">
+        android:gravity="center_vertical"
+        android:paddingVertical="4dp">
 
         <EditText
             android:id="@+id/messageInput"
+            android:layout_marginStart="8dp"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:hint="Сообщение..."
             android:inputType="textShortMessage"
             android:maxLines="3"
-            android:backgroundTint="?attr/colorPrimary" />
+            android:background="@android:color/transparent"
+            android:paddingVertical="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOpenDrawing"
+            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            app:icon="@drawable/ic_draw"
+            app:iconSize="24dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSend"
-            style="@style/Widget.Material3.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            style="@style/Widget.Material3.Button.IconButton.Filled"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@drawable/ic_send"
+            app:iconSize="24dp"
             android:layout_marginStart="8dp"
-            android:text="Отправить" />
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
     </LinearLayout>
 
 </LinearLayout>
