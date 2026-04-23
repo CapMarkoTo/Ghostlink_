@@ -14,6 +14,7 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
     private var canvasPaint: Paint = Paint(Paint.DITHER_FLAG)
     private var drawCanvas: Canvas? = null
     private var canvasBitmap: Bitmap? = null
+    private var isEraserMode = false
 
     init {
         setupDrawing()
@@ -26,6 +27,19 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         drawPaint.style = Paint.Style.STROKE
         drawPaint.strokeJoin = Paint.Join.ROUND
         drawPaint.strokeCap = Paint.Cap.ROUND
+    }
+
+    // Метод переключения между кистью и ластиком
+    fun setEraserMode(enabled: Boolean) {
+        isEraserMode = enabled
+        if (isEraserMode) {
+            // Режим CLEAR "вырезает" пиксели до прозрачности
+            drawPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
+            drawPaint.strokeWidth = 40f
+        } else {
+            drawPaint.xfermode = null
+            drawPaint.strokeWidth = 8f
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -41,7 +55,17 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         canvasBitmap?.let {
             canvas.drawBitmap(it, 0f, 0f, canvasPaint)
         }
-        canvas.drawPath(drawPath, drawPaint)
+
+        // Если включен ластик, рисуем серый превью-путь, чтобы видеть, где стираем
+        if (isEraserMode) {
+            val previewPaint = Paint(drawPaint).apply {
+                xfermode = null
+                color = Color.LTGRAY
+            }
+            canvas.drawPath(drawPath, previewPaint)
+        } else {
+            canvas.drawPath(drawPath, drawPaint)
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -56,6 +80,7 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
                 drawPath.lineTo(touchX, touchY)
             }
             MotionEvent.ACTION_UP -> {
+                // При отпускании пальца переносим путь на основной холст
                 drawCanvas?.drawPath(drawPath, drawPaint)
                 drawPath.reset()
             }
@@ -73,8 +98,6 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
     fun getCompressedByteArray(): ByteArray? {
         val bitmap = canvasBitmap ?: return null
         val outputStream = ByteArrayOutputStream()
-
-        // Попытка сжатия. Если прошло успешно — вернем массив
         return if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
             outputStream.toByteArray()
         } else {

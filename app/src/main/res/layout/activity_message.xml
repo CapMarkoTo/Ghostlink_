@@ -14,12 +14,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Чат: подключение..."
-        android:textSize="24sp"
+        style="@style/TextAppearance.Material3.HeadlineSmall"
         android:textStyle="bold"
         android:textColor="?attr/colorPrimary"
         android:layout_marginStart="8dp"
-        android:layout_marginBottom="12dp"
-        style="@style/TextAppearance.Material3.HeadlineSmall" />
+        android:layout_marginBottom="12dp" />
 
     <View
         android:layout_width="match_parent"
@@ -40,34 +39,42 @@
     <LinearLayout
         android:id="@+id/drawingContainer"
         android:layout_width="match_parent"
-        android:layout_height="250dp"
+        android:layout_height="280dp"
         android:orientation="vertical"
         android:visibility="gone"
         android:background="#F5F5F5"
         android:layout_marginBottom="8dp"
-        app:cardCornerRadius="16dp">
-
-        <com.example.ghostlink.DrawingView
-            android:id="@+id/drawingView"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_margin="8dp"
-            android:background="@android:color/white" />
+        android:elevation="2dp"> <com.example.ghostlink.DrawingView
+        android:id="@+id/drawingView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_margin="8dp"
+        android:background="@android:color/white" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="end"
-            android:padding="4dp">
+            android:gravity="center_vertical|end"
+            android:padding="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnEraser"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Ластик"
+                app:icon="@drawable/ic_eraser"
+                android:layout_marginEnd="8dp" />
 
             <Button
                 android:id="@+id/btnClear"
+                style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Стереть"
-                style="@style/Widget.Material3.Button.TextButton" />
+                android:layout_marginEnd="4dp" />
 
             <Button
                 android:id="@+id/btnSendDrawing"
@@ -84,28 +91,27 @@
         android:gravity="center_vertical"
         android:paddingVertical="4dp">
 
-        <EditText
-            android:id="@+id/messageInput"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="Сообщение..."
-            android:inputType="textShortMessage"
-            android:maxLines="3"
-            android:background="@android:color/transparent"
-            android:paddingVertical="12dp" />
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnOpenDrawing"
             style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginEnd="8dp"
             app:icon="@drawable/ic_draw"
             app:iconSize="24dp"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+        <EditText
+            android:id="@+id/messageInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:hint="Сообщение..."
+            android:inputType="textShortMessage"
+            android:maxLines="3"
+            android:background="@android:color/transparent"
+            android:paddingVertical="12dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSend"
@@ -114,7 +120,6 @@
             android:layout_height="48dp"
             app:icon="@drawable/ic_send"
             app:iconSize="24dp"
-            android:layout_marginEnd="8dp"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
     </LinearLayout>
 

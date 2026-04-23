@@ -10,6 +10,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.LayoutInflater
+import android.view.inputmethod.InputMethodManager
 import android.content.Context
 import android.widget.*
 import androidx.activity.enableEdgeToEdge
@@ -23,7 +24,7 @@ import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Обновленная модель: теперь поддерживает и текст, и картинку
+// Модель сообщения
 data class Message(
     val text: String? = null,
     val image: Bitmap? = null,
@@ -39,7 +40,6 @@ class MessageActivity : AppCompatActivity() {
     private var inputStream: InputStream? = null
     private var isListening = true
 
-    // Маркеры типов сообщений
     private val TYPE_TEXT: Byte = 0x01
     private val TYPE_IMAGE: Byte = 0x02
 
@@ -66,6 +66,7 @@ class MessageActivity : AppCompatActivity() {
         val drawingView = findViewById<DrawingView>(R.id.drawingView)
         val btnClear = findViewById<Button>(R.id.btnClear)
         val btnSendDrawing = findViewById<Button>(R.id.btnSendDrawing)
+        val btnEraser = findViewById<MaterialButton>(R.id.btnEraser) // Кнопка ластика
 
         adapter = MessageAdapter(this, messages)
         listView.adapter = adapter
@@ -89,7 +90,8 @@ class MessageActivity : AppCompatActivity() {
             finish()
         }
 
-        // Отправка текста
+        // --- ЛОГИКА КНОПОК ---
+
         btnSend.setOnClickListener {
             val msg = input.text.toString().trim()
             if (msg.isNotEmpty()) {
@@ -98,42 +100,63 @@ class MessageActivity : AppCompatActivity() {
             }
         }
 
-        // Рисовалка
         btnOpenDrawing.setOnClickListener {
-            drawingContainer.visibility = if (drawingContainer.visibility == View.GONE) View.VISIBLE else View.GONE
+            if (drawingContainer.visibility == View.GONE) {
+                // Скрываем клавиатуру перед открытием рисовалки
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(input.windowToken, 0)
+
+                drawingContainer.visibility = View.VISIBLE
+            } else {
+                drawingContainer.visibility = View.GONE
+            }
         }
 
         btnClear.setOnClickListener { drawingView.clearCanvas() }
 
-        // Отправка рисунка
+        var isEraserActive = false
+        btnEraser.setOnClickListener {
+            isEraserActive = !isEraserActive
+            drawingView.setEraserMode(isEraserActive)
+
+            if (isEraserActive) {
+                btnEraser.text = "Кисть"
+                btnEraser.setIconResource(R.drawable.ic_draw)
+            } else {
+                btnEraser.text = "Ластик"
+                btnEraser.setIconResource(R.drawable.ic_eraser)
+            }
+        }
+
         btnSendDrawing.setOnClickListener {
             val drawingBytes = drawingView.getCompressedByteArray()
             val bitmap = drawingView.getBitmap()
             if (drawingBytes != null && bitmap != null) {
-                // Создаем копию битмапа для списка, так как холст будет очищен
                 val staticBitmap = Bitmap.createBitmap(bitmap)
                 sendImageMessage(drawingBytes, staticBitmap)
                 drawingView.clearCanvas()
                 drawingContainer.visibility = View.GONE
+
+                // Сбрасываем ластик при закрытии
+                isEraserActive = false
+                drawingView.setEraserMode(false)
+                btnEraser.text = "Ластик"
+                btnEraser.setIconResource(R.drawable.ic_eraser)
             }
         }
     }
 
+    // Методы отправки и приема остаются без изменений (они уже были рабочие)
     private fun sendTextMessage(text: String) {
         Thread {
             try {
                 val bytes = text.toByteArray(Charsets.UTF_8)
                 outputStream?.write(TYPE_TEXT.toInt())
-                outputStream?.write(bytes.size shr 8) // Длина (байт 1)
-                outputStream?.write(bytes.size)       // Длина (байт 2)
+                outputStream?.write(bytes.size shr 8)
+                outputStream?.write(bytes.size)
                 outputStream?.write(bytes)
                 outputStream?.flush()
-
-                runOnUiThread {
-                    messages.add(Message(text = text, isMine = true))
-                    adapter.notifyDataSetChanged()
-                    findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
-                }
+                runOnUiThread { updateUI(Message(text = text, isMine = true)) }
             } catch (e: Exception) { }
         }.start()
     }
@@ -142,21 +165,14 @@ class MessageActivity : AppCompatActivity() {
         Thread {
             try {
                 outputStream?.write(TYPE_IMAGE.toInt())
-                // Отправляем размер массива байтов (4 байта для надежности)
                 val size = bytes.size
                 outputStream?.write(size shr 24)
                 outputStream?.write(size shr 16)
                 outputStream?.write(size shr 8)
                 outputStream?.write(size)
-
                 outputStream?.write(bytes)
                 outputStream?.flush()
-
-                runOnUiThread {
-                    messages.add(Message(image = bitmap, isMine = true))
-                    adapter.notifyDataSetChanged()
-                    findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
-                }
+                runOnUiThread { updateUI(Message(image = bitmap, isMine = true)) }
             } catch (e: Exception) { }
         }.start()
     }
@@ -173,7 +189,12 @@ class MessageActivity : AppCompatActivity() {
                         val len2 = inputStream?.read() ?: 0
                         val len = (len1 shl 8) or len2
                         val buffer = ByteArray(len)
-                        inputStream?.read(buffer)
+                        var totalRead = 0
+                        while (totalRead < len) {
+                            val r = inputStream?.read(buffer, totalRead, len - totalRead) ?: -1
+                            if (r == -1) break
+                            totalRead += r
+                        }
                         val text = String(buffer, Charsets.UTF_8)
                         runOnUiThread { updateUI(Message(text = text, isMine = false)) }
                     } else if (type == TYPE_IMAGE.toInt()) {
@@ -210,6 +231,7 @@ class MessageActivity : AppCompatActivity() {
     }
 }
 
+// Адаптер остается прежним
 class MessageAdapter(context: Context, private val objects: List<Message>) :
     ArrayAdapter<Message>(context, R.layout.item_message, objects) {
 
@@ -220,12 +242,11 @@ class MessageAdapter(context: Context, private val objects: List<Message>) :
         val message = getItem(position)
 
         val textView = view.findViewById<TextView>(R.id.messageText)
-        val imageView = view.findViewById<ImageView>(R.id.messageImage) // Нужно добавить в XML
+        val imageView = view.findViewById<ImageView>(R.id.messageImage)
         val timeView = view.findViewById<TextView>(R.id.messageTime)
         val container = view.findViewById<LinearLayout>(R.id.messageContainer)
         val bubble = view.findViewById<LinearLayout>(R.id.bubbleBackground)
 
-        // Логика отображения: Текст или Картинка
         if (message?.image != null) {
             textView.visibility = View.GONE
             imageView.visibility = View.VISIBLE
