@@ -40,9 +40,13 @@ class MessageActivity : AppCompatActivity() {
     private var inputStream: InputStream? = null
     private var isListening = true
 
+    // Выносим TextView на уровень класса, чтобы он был доступен во всех методах
+    private lateinit var deviceNameTitle: TextView
+    private var currentRemoteName: String = "Подключение..."
+
     private val TYPE_TEXT: Byte = 0x01
     private val TYPE_IMAGE: Byte = 0x02
-    private val TYPE_NAME: Byte = 0x03 // Тот самый новый тип
+    private val TYPE_NAME: Byte = 0x03
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -57,7 +61,9 @@ class MessageActivity : AppCompatActivity() {
             insets
         }
 
-        val deviceNameTitle = findViewById<TextView>(R.id.deviceNameTitle)
+        // Инициализируем глобальную переменную
+        deviceNameTitle = findViewById(R.id.deviceNameTitle)
+
         val listView = findViewById<ListView>(R.id.chatListView)
         val input = findViewById<EditText>(R.id.messageInput)
         val btnSend = findViewById<MaterialButton>(R.id.btnSend)
@@ -76,16 +82,12 @@ class MessageActivity : AppCompatActivity() {
 
         if (socket != null && socket.isConnected) {
             try {
-                // Временный заголовок, пока не получили ник по протоколу
-                deviceNameTitle.text = "Подключение..."
+                deviceNameTitle.text = currentRemoteName
 
                 outputStream = socket.outputStream
                 inputStream = socket.inputStream
 
-                // Запускаем прослушивание
                 listenForMessages()
-
-                // СРАЗУ отправляем свое имя из настроек собеседнику
                 sendMyGhostName()
 
             } catch (e: Exception) {
@@ -95,7 +97,6 @@ class MessageActivity : AppCompatActivity() {
             finish()
         }
 
-        // --- ЛОГИКА КНОПОК ---
         btnSend.setOnClickListener {
             val msg = input.text.toString().trim()
             if (msg.isNotEmpty()) {
@@ -145,7 +146,6 @@ class MessageActivity : AppCompatActivity() {
         }
     }
 
-    // Метод для отправки своего ника в самом начале
     private fun sendMyGhostName() {
         Thread {
             try {
@@ -204,8 +204,9 @@ class MessageActivity : AppCompatActivity() {
                             val buffer = ByteArray(len)
                             inputStream?.read(buffer)
                             val remoteName = String(buffer, Charsets.UTF_8)
+                            currentRemoteName = remoteName
                             runOnUiThread {
-                                findViewById<TextView>(R.id.deviceNameTitle).text = "Чат с: $remoteName"
+                                deviceNameTitle.text = "Чат с: $remoteName"
                             }
                         }
                         TYPE_TEXT -> {
