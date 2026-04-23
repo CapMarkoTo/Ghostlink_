@@ -42,6 +42,7 @@ class MessageActivity : AppCompatActivity() {
 
     private val TYPE_TEXT: Byte = 0x01
     private val TYPE_IMAGE: Byte = 0x02
+    private val TYPE_NAME: Byte = 0x03 // Тот самый новый тип
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -66,7 +67,7 @@ class MessageActivity : AppCompatActivity() {
         val drawingView = findViewById<DrawingView>(R.id.drawingView)
         val btnClear = findViewById<Button>(R.id.btnClear)
         val btnSendDrawing = findViewById<Button>(R.id.btnSendDrawing)
-        val btnEraser = findViewById<MaterialButton>(R.id.btnEraser) // Кнопка ластика
+        val btnEraser = findViewById<MaterialButton>(R.id.btnEraser)
 
         adapter = MessageAdapter(this, messages)
         listView.adapter = adapter
@@ -75,23 +76,26 @@ class MessageActivity : AppCompatActivity() {
 
         if (socket != null && socket.isConnected) {
             try {
-                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                    deviceNameTitle.text = "Чат: ${socket.remoteDevice.name ?: "Устройство"}"
-                } else {
-                    deviceNameTitle.text = "Чат: ${socket.remoteDevice.address}"
-                }
+                // Временный заголовок, пока не получили ник по протоколу
+                deviceNameTitle.text = "Подключение..."
+
                 outputStream = socket.outputStream
                 inputStream = socket.inputStream
+
+                // Запускаем прослушивание
                 listenForMessages()
+
+                // СРАЗУ отправляем свое имя из настроек собеседнику
+                sendMyGhostName()
+
             } catch (e: Exception) {
-                deviceNameTitle.text = "Чат: Ошибка"
+                deviceNameTitle.text = "Ошибка потоков"
             }
         } else {
             finish()
         }
 
         // --- ЛОГИКА КНОПОК ---
-
         btnSend.setOnClickListener {
             val msg = input.text.toString().trim()
             if (msg.isNotEmpty()) {
@@ -102,10 +106,8 @@ class MessageActivity : AppCompatActivity() {
 
         btnOpenDrawing.setOnClickListener {
             if (drawingContainer.visibility == View.GONE) {
-                // Скрываем клавиатуру перед открытием рисовалки
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.hideSoftInputFromWindow(input.windowToken, 0)
-
                 drawingContainer.visibility = View.VISIBLE
             } else {
                 drawingContainer.visibility = View.GONE
@@ -118,7 +120,6 @@ class MessageActivity : AppCompatActivity() {
         btnEraser.setOnClickListener {
             isEraserActive = !isEraserActive
             drawingView.setEraserMode(isEraserActive)
-
             if (isEraserActive) {
                 btnEraser.text = "Кисть"
                 btnEraser.setIconResource(R.drawable.ic_draw)
@@ -136,8 +137,6 @@ class MessageActivity : AppCompatActivity() {
                 sendImageMessage(drawingBytes, staticBitmap)
                 drawingView.clearCanvas()
                 drawingContainer.visibility = View.GONE
-
-                // Сбрасываем ластик при закрытии
                 isEraserActive = false
                 drawingView.setEraserMode(false)
                 btnEraser.text = "Ластик"
@@ -146,7 +145,22 @@ class MessageActivity : AppCompatActivity() {
         }
     }
 
-    // Методы отправки и приема остаются без изменений (они уже были рабочие)
+    // Метод для отправки своего ника в самом начале
+    private fun sendMyGhostName() {
+        Thread {
+            try {
+                val prefs = getSharedPreferences("GhostPrefs", Context.MODE_PRIVATE)
+                val myName = prefs.getString("ghost_name", Build.MODEL) ?: Build.MODEL
+                val nameBytes = myName.toByteArray(Charsets.UTF_8)
+
+                outputStream?.write(TYPE_NAME.toInt())
+                outputStream?.write(nameBytes.size)
+                outputStream?.write(nameBytes)
+                outputStream?.flush()
+            } catch (e: Exception) { }
+        }.start()
+    }
+
     private fun sendTextMessage(text: String) {
         Thread {
             try {
@@ -184,35 +198,47 @@ class MessageActivity : AppCompatActivity() {
                     val type = inputStream?.read() ?: -1
                     if (type == -1) break
 
-                    if (type == TYPE_TEXT.toInt()) {
-                        val len1 = inputStream?.read() ?: 0
-                        val len2 = inputStream?.read() ?: 0
-                        val len = (len1 shl 8) or len2
-                        val buffer = ByteArray(len)
-                        var totalRead = 0
-                        while (totalRead < len) {
-                            val r = inputStream?.read(buffer, totalRead, len - totalRead) ?: -1
-                            if (r == -1) break
-                            totalRead += r
+                    when (type.toByte()) {
+                        TYPE_NAME -> {
+                            val len = inputStream?.read() ?: 0
+                            val buffer = ByteArray(len)
+                            inputStream?.read(buffer)
+                            val remoteName = String(buffer, Charsets.UTF_8)
+                            runOnUiThread {
+                                findViewById<TextView>(R.id.deviceNameTitle).text = "Чат с: $remoteName"
+                            }
                         }
-                        val text = String(buffer, Charsets.UTF_8)
-                        runOnUiThread { updateUI(Message(text = text, isMine = false)) }
-                    } else if (type == TYPE_IMAGE.toInt()) {
-                        val s1 = inputStream?.read() ?: 0
-                        val s2 = inputStream?.read() ?: 0
-                        val s3 = inputStream?.read() ?: 0
-                        val s4 = inputStream?.read() ?: 0
-                        val size = (s1 shl 24) or (s2 shl 16) or (s3 shl 8) or s4
+                        TYPE_TEXT -> {
+                            val len1 = inputStream?.read() ?: 0
+                            val len2 = inputStream?.read() ?: 0
+                            val len = (len1 shl 8) or len2
+                            val buffer = ByteArray(len)
+                            var totalRead = 0
+                            while (totalRead < len) {
+                                val r = inputStream?.read(buffer, totalRead, len - totalRead) ?: -1
+                                if (r == -1) break
+                                totalRead += r
+                            }
+                            val text = String(buffer, Charsets.UTF_8)
+                            runOnUiThread { updateUI(Message(text = text, isMine = false)) }
+                        }
+                        TYPE_IMAGE -> {
+                            val s1 = inputStream?.read() ?: 0
+                            val s2 = inputStream?.read() ?: 0
+                            val s3 = inputStream?.read() ?: 0
+                            val s4 = inputStream?.read() ?: 0
+                            val size = (s1 shl 24) or (s2 shl 16) or (s3 shl 8) or s4
 
-                        val buffer = ByteArray(size)
-                        var bytesRead = 0
-                        while (bytesRead < size) {
-                            val result = inputStream?.read(buffer, bytesRead, size - bytesRead) ?: -1
-                            if (result == -1) break
-                            bytesRead += result
+                            val buffer = ByteArray(size)
+                            var bytesRead = 0
+                            while (bytesRead < size) {
+                                val result = inputStream?.read(buffer, bytesRead, size - bytesRead) ?: -1
+                                if (result == -1) break
+                                bytesRead += result
+                            }
+                            val bitmap = BitmapFactory.decodeByteArray(buffer, 0, buffer.size)
+                            runOnUiThread { updateUI(Message(image = bitmap, isMine = false)) }
                         }
-                        val bitmap = BitmapFactory.decodeByteArray(buffer, 0, buffer.size)
-                        runOnUiThread { updateUI(Message(image = bitmap, isMine = false)) }
                     }
                 } catch (e: Exception) { break }
             }
@@ -231,7 +257,6 @@ class MessageActivity : AppCompatActivity() {
     }
 }
 
-// Адаптер остается прежним
 class MessageAdapter(context: Context, private val objects: List<Message>) :
     ArrayAdapter<Message>(context, R.layout.item_message, objects) {
 
