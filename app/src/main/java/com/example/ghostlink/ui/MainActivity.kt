@@ -20,7 +20,6 @@ class MainActivity : AppCompatActivity() {
 
     private var bluetoothAdapter: BluetoothAdapter? = null
 
-    // Список необходимых разрешений в зависимости от версии Android
     private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
             Manifest.permission.BLUETOOTH_SCAN,
@@ -47,7 +46,6 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        // Поддержка системных отступов (Edge-to-Edge)
         val mainLayout = findViewById<android.view.View>(R.id.main)
         if (mainLayout != null) {
             ViewCompat.setOnApplyWindowInsetsListener(mainLayout) { v, insets ->
@@ -57,7 +55,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Включаем поддержку динамических цветов Material You
         com.google.android.material.color.DynamicColors.applyToActivitiesIfAvailable(application)
 
         bluetoothAdapter = getSystemService(BluetoothManager::class.java)?.adapter
@@ -65,8 +62,6 @@ class MainActivity : AppCompatActivity() {
         // КНОПКА "СОЗДАТЬ ЧАТ"
         findViewById<Button>(R.id.btnHost).setOnClickListener {
             checkPermissionsAndRun {
-                // Переходим сразу в WaitingActivity.
-                // Запрос видимости теперь будет запускаться уже там в onCreate.
                 startActivity(Intent(this, WaitingActivity::class.java))
             }
         }
@@ -77,12 +72,16 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent(this, DeviceListActivity::class.java))
             }
         }
+
+        // --- НОВОЕ: КНОПКА "НАСТРОЙКИ" ---
+        findViewById<Button>(R.id.btnSettings).setOnClickListener {
+            // Для перехода в настройки разрешения не обязательны,
+            // поэтому вызываем startActivity напрямую
+            val intent = Intent(this, SettingsActivity::class.java)
+            startActivity(intent)
+        }
     }
 
-    /**
-     * Проверяет разрешения. Если всё ок — выполняет действие.
-     * Если нет — запрашивает разрешения.
-     */
     private fun checkPermissionsAndRun(action: () -> Unit) {
         if (permissions.all { ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }) {
             action()
