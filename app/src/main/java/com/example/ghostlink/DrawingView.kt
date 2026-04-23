@@ -5,6 +5,7 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import java.io.ByteArrayOutputStream
 
 class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) {
 
@@ -19,7 +20,7 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
     }
 
     private fun setupDrawing() {
-        drawPaint.color = Color.BLACK // В духе PictoChat — только черный
+        drawPaint.color = Color.BLACK
         drawPaint.isAntiAlias = true
         drawPaint.strokeWidth = 8f
         drawPaint.style = Paint.Style.STROKE
@@ -29,14 +30,17 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-        // Создаем чистый лист для рисования
-        canvasBitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-        drawCanvas = Canvas(canvasBitmap!!)
+        if (w > 0 && h > 0) {
+            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            canvasBitmap = bitmap
+            drawCanvas = Canvas(bitmap)
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
-        // Рисуем то, что уже было нарисовано, и текущую линию
-        canvas.drawBitmap(canvasBitmap!!, 0f, 0f, canvasPaint)
+        canvasBitmap?.let {
+            canvas.drawBitmap(it, 0f, 0f, canvasPaint)
+        }
         canvas.drawPath(drawPath, drawPaint)
     }
 
@@ -57,16 +61,26 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
             }
             else -> return false
         }
-        invalidate() // Перерисовать экран
+        invalidate()
         return true
     }
 
-    // Метод для очистки холста
     fun clearCanvas() {
         drawCanvas?.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
         invalidate()
     }
 
-    // Метод для получения рисунка в виде Bitmap (для отправки)
+    fun getCompressedByteArray(): ByteArray? {
+        val bitmap = canvasBitmap ?: return null
+        val outputStream = ByteArrayOutputStream()
+
+        // Попытка сжатия. Если прошло успешно — вернем массив
+        return if (bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)) {
+            outputStream.toByteArray()
+        } else {
+            null
+        }
+    }
+
     fun getBitmap(): Bitmap? = canvasBitmap
 }
