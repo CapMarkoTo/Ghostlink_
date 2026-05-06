@@ -4,68 +4,118 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="false">
 
-    <LinearLayout
-        android:id="@+id/main"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:paddingTop="48dp"
-        android:paddingHorizontal="24dp">
-
-        <ImageButton
-            android:id="@+id/btnOpenMenu"
-            android:layout_marginStart="16dp"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_menu"
-            android:scaleType="fitCenter"
-            app:tint="?attr/colorPrimary"
-            android:contentDescription="Открыть меню" />
-
-        <TextView
-            android:id="@+id/titleText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="48dp"
-            android:layout_gravity="center_horizontal"
-            android:text="GhostLink BT"
-            android:textColor="?attr/colorPrimary"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:textAlignment="center"
-            style="@style/TextAppearance.Material3.HeadlineLarge" />
+        android:layout_height="match_parent">
 
         <LinearLayout
+            android:id="@+id/main"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:gravity="center">
+            android:paddingHorizontal="16dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnHost"
-                style="@style/Widget.Material3.Button"
+            <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_margin="16dp"
-                android:text="Создать чат (Host)"
-                android:textSize="18sp"
-                app:cornerRadius="16dp" />
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnJoin"
-                style="@style/Widget.Material3.Button.TonalButton"
+                <ImageButton
+                    android:id="@+id/btnOpenMenu"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_alignParentStart="true"
+                    android:layout_centerVertical="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_menu"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="Открыть меню" />
+
+                <TextView
+                    android:id="@+id/titleText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerInParent="true"
+                    android:text="GhostLink BT"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    style="@style/TextAppearance.Material3.HeadlineSmall" />
+            </RelativeLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_marginHorizontal="16dp"
-                android:text="Присоединиться (Join)"
-                android:textSize="18sp"
-                app:cornerRadius="16dp" />
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center">
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnHost"
+                    style="@style/Widget.Material3.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_margin="16dp"
+                    android:text="Создать чат (Host)"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="20dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnJoin"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="72dp"
+                    android:layout_marginHorizontal="16dp"
+                    android:text="Присоединиться (Join)"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="20dp" />
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/floatingToolbar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="32dp"
+            android:visibility="gone"
+            app:cardCornerRadius="32dp"
+            app:cardElevation="12dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <ImageButton
+                    android:id="@+id/btnNavHome"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_home"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="?attr/colorPrimary" />
+
+                <ImageButton
+                    android:id="@+id/btnNavSettings"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_settings"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </FrameLayout>
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"

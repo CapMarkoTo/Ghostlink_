@@ -4,45 +4,52 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="false">
 
-    <LinearLayout
-        android:id="@+id/main"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:paddingTop="48dp">
+        android:layout_height="match_parent">
 
         <LinearLayout
+            android:id="@+id/main"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="16dp"
-            android:layout_marginBottom="16dp">
-
-            <ImageButton
-                android:id="@+id/btnOpenMenu"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_menu"
-                app:tint="?attr/colorPrimary" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Настройки"
-                android:layout_marginStart="16dp"
-                style="@style/TextAppearance.Material3.HeadlineSmall" />
-        </LinearLayout>
-
-        <androidx.core.widget.NestedScrollView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1">
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
             <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp">
+
+                <ImageButton
+                    android:id="@+id/btnOpenMenu"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_menu"
+                    app:tint="?attr/colorPrimary"
+                    android:contentDescription="Меню" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Настройки"
+                    android:layout_marginStart="16dp"
+                    style="@style/TextAppearance.Material3.HeadlineSmall" />
+            </LinearLayout>
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/settingsScrollView"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="120dp"> <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
@@ -84,7 +91,8 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
-                    app:strokeWidth="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
                     app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
 
                     <LinearLayout
@@ -93,41 +101,32 @@
                         android:orientation="vertical"
                         android:padding="12dp">
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switchSystemFonts"
+                        <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Использовать системные шрифты"
+                            android:text="Радиус скругления кнопок"
                             android:paddingHorizontal="8dp"
-                            android:paddingVertical="8dp" />
+                            android:paddingTop="16dp"
+                            android:textSize="14sp" />
 
-                        <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switchSeparateHeaders"
+                        <com.google.android.material.slider.Slider
+                            android:id="@+id/sliderCornerRadius"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Раздельные заголовки"
-                            android:paddingHorizontal="8dp"
-                            android:paddingVertical="8dp" />
+                            android:valueFrom="0"
+                            android:valueTo="32"
+                            android:stepSize="4"
+                            app:labelBehavior="withinBounds" />
 
                         <com.google.android.material.materialswitch.MaterialSwitch
-                            android:id="@+id/switchCustomThemes"
+                            android:id="@+id/switchNavigationType"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Свои темы в чатах"
+                            android:text="Floating Toolbar (снизу)"
                             android:paddingHorizontal="8dp"
                             android:paddingVertical="8dp" />
-
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Каждый чат будет отображать тему, выбранную специально для него."
-                    android:textSize="12sp"
-                    android:alpha="0.7"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginHorizontal="16dp" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -143,7 +142,8 @@
                     android:layout_height="wrap_content"
                     app:cardCornerRadius="24dp"
                     app:cardElevation="0dp"
-                    app:strokeWidth="0dp"
+                    app:strokeWidth="1dp"
+                    app:strokeColor="?attr/colorOutlineVariant"
                     app:cardBackgroundColor="?attr/colorSurfaceContainerLow">
 
                     <LinearLayout
@@ -151,7 +151,6 @@
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:padding="12dp">
-
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/switchNotifications"
                             android:layout_width="match_parent"
@@ -159,22 +158,59 @@
                             android:text="Уведомления о сообщениях"
                             android:paddingHorizontal="8dp"
                             android:paddingVertical="8dp" />
-
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSaveSettings"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="64dp"
                     android:text="Сохранить изменения"
                     android:layout_marginTop="40dp"
-                    android:layout_marginBottom="24dp"
                     style="@style/Widget.Material3.Button" />
-
             </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
-    </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+        </LinearLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/floatingToolbar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="32dp"
+            android:visibility="gone"
+            app:cardCornerRadius="32dp"
+            app:cardElevation="15dp"
+            app:cardBackgroundColor="?attr/colorSurfaceContainerHigh"
+            app:strokeWidth="0dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp">
+
+                <ImageButton
+                    android:id="@+id/btnNavHome"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_home"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="?attr/colorOnSurfaceVariant" />
+
+                <ImageButton
+                    android:id="@+id/btnNavSettings"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_settings"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    app:tint="?attr/colorPrimary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </FrameLayout>
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
