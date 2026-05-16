@@ -49,21 +49,64 @@
             </RelativeLayout>
 
             <LinearLayout
+                android:id="@+id/buttonsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:gravity="center">
+                android:gravity="center"
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnHost"
-                    style="@style/Widget.Material3.Button"
+                <FrameLayout
+                    android:id="@+id/hostContainer"
                     android:layout_width="match_parent"
                     android:layout_height="72dp"
                     android:layout_margin="16dp"
-                    android:text="Создать чат (Host)"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    app:cornerRadius="20dp" />
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnHost"
+                        style="@style/Widget.Material3.Button"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:text="Создать чат (Host)"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="20dp" />
+
+                    <LinearLayout
+                        android:id="@+id/subHostButtons"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnPrivateChat"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6dp"
+                            android:text="Личный"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="20dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnGroupChat"
+                            style="@style/Widget.Material3.Button"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
+                            android:text="Групповой"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            app:cornerRadius="20dp" />
+                    </LinearLayout>
+                </FrameLayout>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnJoin"

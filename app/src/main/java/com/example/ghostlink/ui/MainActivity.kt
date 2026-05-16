@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -22,6 +23,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.activity.enableEdgeToEdge
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.transition.ChangeBounds
+import androidx.transition.Fade
+import androidx.transition.TransitionManager
+import androidx.transition.TransitionSet
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.navigation.NavigationView
 
@@ -29,6 +34,9 @@ class MainActivity : AppCompatActivity() {
 
     private var bluetoothAdapter: BluetoothAdapter? = null
     private lateinit var navigationView: NavigationView
+
+    // Переменная для отслеживания состояния анимации кнопок
+    private var isMenuExpanded = false
 
     private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -62,8 +70,14 @@ class MainActivity : AppCompatActivity() {
         val mainLayout = findViewById<View>(R.id.main)
         val floatingToolbar = findViewById<View>(R.id.floatingToolbar)
         val btnOpenMenu = findViewById<ImageButton>(R.id.btnOpenMenu)
+
+        // Кнопки и их контейнеры
+        val buttonsContainer = findViewById<ViewGroup>(R.id.buttonsContainer)
         val btnHost = findViewById<MaterialButton>(R.id.btnHost)
         val btnJoin = findViewById<MaterialButton>(R.id.btnJoin)
+        val subHostButtons = findViewById<LinearLayout>(R.id.subHostButtons)
+        val btnPrivateChat = findViewById<MaterialButton>(R.id.btnPrivateChat)
+        val btnGroupChat = findViewById<MaterialButton>(R.id.btnGroupChat)
 
         // 2. Исправленный Listener отступов (Edge-to-Edge фикс)
         ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { _, insets ->
@@ -106,13 +120,68 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
-        // 5. Кнопки основного экрана
+        // 5. Анимация деления кнопки "Создать чат"
         btnHost.setOnClickListener {
+            if (!isMenuExpanded) {
+                // Настраиваем плавный переход
+                val transition = TransitionSet().apply {
+                    ordering = TransitionSet.ORDERING_TOGETHER
+                    addTransition(ChangeBounds())
+                    addTransition(Fade())
+                    duration = 350
+                }
+                TransitionManager.beginDelayedTransition(buttonsContainer, transition)
+
+                // Запускаем изменения видимости
+                btnJoin.visibility = View.GONE
+                btnHost.visibility = View.INVISIBLE
+                subHostButtons.visibility = View.VISIBLE
+
+                isMenuExpanded = true
+            }
+        }
+
+        // 6. Действия для новых кнопок меню
+        btnPrivateChat.setOnClickListener {
             checkPermissionsAndRun { startActivity(Intent(this, WaitingActivity::class.java)) }
+        }
+
+        btnGroupChat.setOnClickListener {
+            // Запуск группового лобби ожидания с предварительной проверкой Bluetooth-пермишенов
+            checkPermissionsAndRun { startActivity(Intent(this, GroupWaitingActivity::class.java)) }
         }
 
         btnJoin.setOnClickListener {
             checkPermissionsAndRun { startActivity(Intent(this, DeviceListActivity::class.java)) }
+        }
+
+        // 7. Обработка кнопки Назад (Сворачивание подменю или закрытие Drawer)
+        onBackPressedDispatcher.addCallback(this) {
+            when {
+                drawerLayout.isDrawerOpen(GravityCompat.START) -> {
+                    drawerLayout.closeDrawer(GravityCompat.START)
+                }
+                isMenuExpanded -> {
+                    // Анимируем возвращение кнопок в дефолтное состояние
+                    val transition = TransitionSet().apply {
+                        ordering = TransitionSet.ORDERING_TOGETHER
+                        addTransition(ChangeBounds())
+                        addTransition(Fade())
+                        duration = 300
+                    }
+                    TransitionManager.beginDelayedTransition(buttonsContainer, transition)
+
+                    subHostButtons.visibility = View.GONE
+                    btnHost.visibility = View.VISIBLE
+                    btnJoin.visibility = View.VISIBLE
+
+                    isMenuExpanded = false
+                }
+                else -> {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
         }
     }
 
@@ -129,11 +198,13 @@ class MainActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("GhostPrefs", Context.MODE_PRIVATE)
 
-        // Применяем радиус скругления кнопок
+        // Применяем радиус скругления ко ВСЕМ 4 кнопкам
         val radius = prefs.getFloat("button_radius", 16f)
         val radiusPx = (radius * resources.displayMetrics.density).toInt()
         findViewById<MaterialButton>(R.id.btnHost).cornerRadius = radiusPx
         findViewById<MaterialButton>(R.id.btnJoin).cornerRadius = radiusPx
+        findViewById<MaterialButton>(R.id.btnPrivateChat).cornerRadius = radiusPx
+        findViewById<MaterialButton>(R.id.btnGroupChat).cornerRadius = radiusPx
 
         // Применяем тип навигации (Floating vs Drawer)
         val useFloating = prefs.getBoolean("use_floating_toolbar", false)
@@ -151,20 +222,6 @@ class MainActivity : AppCompatActivity() {
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
         }
 
-        // Управление заголовком (Раздельные заголовки)
-        val showHeader = prefs.getBoolean("separate_headers", true)
-        findViewById<TextView>(R.id.titleText)?.visibility = if (showHeader) View.VISIBLE else View.GONE
-
         navigationView.setCheckedItem(R.id.nav_home)
-
-        // Обработка кнопки Назад
-        onBackPressedDispatcher.addCallback(this) {
-            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                drawerLayout.closeDrawer(GravityCompat.START)
-            } else {
-                isEnabled = false
-                onBackPressedDispatcher.onBackPressed()
-            }
-        }
     }
 }
