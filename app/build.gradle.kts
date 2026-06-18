@@ -1,7 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("kotlin-kapt")
+    // Добавляем KSP плагин
+    id("com.google.devtools.ksp") version "2.0.21-1.0.25"
 }
 
 android {
@@ -9,10 +10,9 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        kapt {
-            arguments {
-                arg("room.schemaLocation", "$projectDir/schemas")
-            }
+        // Заменяем блок kapt на ksp
+        ksp {
+            arg("room.schemaLocation", "$projectDir/schemas")
         }
         applicationId = "com.example.ghostlink"
         minSdk = 26
@@ -42,7 +42,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
@@ -51,8 +50,11 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
-    kapt("androidx.room:room-compiler:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
+
+    // Заменяем kapt на ksp
+    ksp("androidx.room:room-compiler:$roomVersion")
 }

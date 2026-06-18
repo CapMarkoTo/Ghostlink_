@@ -1,21 +1,18 @@
 package com.example.ghostlink
 
-import android.Manifest
-import android.content.pm.PackageManager
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.LayoutInflater
 import android.view.inputmethod.InputMethodManager
-import android.content.Context
 import android.widget.*
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
@@ -34,13 +31,13 @@ data class Message(
 
 class MessageActivity : AppCompatActivity() {
 
-    private lateinit var adapter: MessageAdapter
+    // Переименовали адаптер в ChatMessageAdapter
+    private lateinit var adapter: ChatMessageAdapter
     private val messages = mutableListOf<Message>()
     private var outputStream: OutputStream? = null
     private var inputStream: InputStream? = null
     private var isListening = true
 
-    // Выносим TextView на уровень класса, чтобы он был доступен во всех методах
     private lateinit var deviceNameTitle: TextView
     private var currentRemoteName: String = "Подключение..."
 
@@ -61,7 +58,6 @@ class MessageActivity : AppCompatActivity() {
             insets
         }
 
-        // Инициализируем глобальную переменную
         deviceNameTitle = findViewById(R.id.deviceNameTitle)
 
         val listView = findViewById<ListView>(R.id.chatListView)
@@ -75,7 +71,8 @@ class MessageActivity : AppCompatActivity() {
         val btnSendDrawing = findViewById<Button>(R.id.btnSendDrawing)
         val btnEraser = findViewById<MaterialButton>(R.id.btnEraser)
 
-        adapter = MessageAdapter(this, messages)
+        // Инициализируем с новым именем класса
+        adapter = ChatMessageAdapter(this, messages)
         listView.adapter = adapter
 
         val socket = BluetoothService.connectedSocket
@@ -83,13 +80,10 @@ class MessageActivity : AppCompatActivity() {
         if (socket != null && socket.isConnected) {
             try {
                 deviceNameTitle.text = currentRemoteName
-
                 outputStream = socket.outputStream
                 inputStream = socket.inputStream
-
                 listenForMessages()
                 sendMyGhostName()
-
             } catch (e: Exception) {
                 deviceNameTitle.text = "Ошибка потоков"
             }
@@ -257,8 +251,8 @@ class MessageActivity : AppCompatActivity() {
         isListening = false
     }
 }
-
-class MessageAdapter(context: Context, private val objects: List<Message>) :
+// Теперь класс называется ChatMessageAdapter
+class ChatMessageAdapter(context: Context, private val objects: List<Message>) :
     ArrayAdapter<Message>(context, R.layout.item_message, objects) {
 
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
