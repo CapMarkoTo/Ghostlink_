@@ -31,7 +31,6 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.navigation.NavigationView
 
 class MainActivity : AppCompatActivity() {
-
     private var bluetoothAdapter: BluetoothAdapter? = null
     private lateinit var navigationView: NavigationView
 
@@ -78,6 +77,9 @@ class MainActivity : AppCompatActivity() {
         val subHostButtons = findViewById<LinearLayout>(R.id.subHostButtons)
         val btnPrivateChat = findViewById<MaterialButton>(R.id.btnPrivateChat)
         val btnGroupChat = findViewById<MaterialButton>(R.id.btnGroupChat)
+
+        btnGroupChat.isEnabled = false   // Кнопка перестанет нажиматься
+        btnGroupChat.alpha = 0.5f       // Сделаем её полупрозрачной
 
         // 2. Исправленный Listener отступов (Edge-to-Edge фикс)
         ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { _, insets ->

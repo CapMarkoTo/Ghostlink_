@@ -39,6 +39,11 @@ class MessageActivity : AppCompatActivity() {
     private var isListening = true
 
     private lateinit var deviceNameTitle: TextView
+    private lateinit var messageInput: EditText
+    private lateinit var btnSend: MaterialButton
+    private lateinit var btnOpenDrawing: MaterialButton
+    private lateinit var drawingContainer: LinearLayout
+
     private var currentRemoteName: String = "Подключение..."
 
     private val TYPE_TEXT: Byte = 0x01
@@ -59,13 +64,12 @@ class MessageActivity : AppCompatActivity() {
         }
 
         deviceNameTitle = findViewById(R.id.deviceNameTitle)
+        messageInput = findViewById(R.id.messageInput)
+        btnSend = findViewById(R.id.btnSend)
+        btnOpenDrawing = findViewById(R.id.btnOpenDrawing)
+        drawingContainer = findViewById(R.id.drawingContainer)
 
         val listView = findViewById<ListView>(R.id.chatListView)
-        val input = findViewById<EditText>(R.id.messageInput)
-        val btnSend = findViewById<MaterialButton>(R.id.btnSend)
-
-        val btnOpenDrawing = findViewById<MaterialButton>(R.id.btnOpenDrawing)
-        val drawingContainer = findViewById<LinearLayout>(R.id.drawingContainer)
         val drawingView = findViewById<DrawingView>(R.id.drawingView)
         val btnClear = findViewById<Button>(R.id.btnClear)
         val btnSendDrawing = findViewById<Button>(R.id.btnSendDrawing)
@@ -92,17 +96,17 @@ class MessageActivity : AppCompatActivity() {
         }
 
         btnSend.setOnClickListener {
-            val msg = input.text.toString().trim()
+            val msg = messageInput.text.toString().trim()
             if (msg.isNotEmpty()) {
                 sendTextMessage(msg)
-                input.setText("")
+                messageInput.setText("")
             }
         }
 
         btnOpenDrawing.setOnClickListener {
             if (drawingContainer.visibility == View.GONE) {
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.hideSoftInputFromWindow(input.windowToken, 0)
+                imm.hideSoftInputFromWindow(messageInput.windowToken, 0)
                 drawingContainer.visibility = View.VISIBLE
             } else {
                 drawingContainer.visibility = View.GONE
@@ -136,6 +140,29 @@ class MessageActivity : AppCompatActivity() {
                 drawingView.setEraserMode(false)
                 btnEraser.text = "Ластик"
                 btnEraser.setIconResource(R.drawable.ic_eraser)
+            }
+        }
+    }
+
+    private fun updateConnectionStatus(isConnected: Boolean) {
+        runOnUiThread {
+            if (isConnected) {
+                deviceNameTitle.text = "Чат с: $currentRemoteName (В сети)"
+                deviceNameTitle.setTextColor(resources.getColor(android.R.color.holo_green_dark, theme))
+                messageInput.isEnabled = true
+                btnSend.isEnabled = true
+                btnOpenDrawing.isEnabled = true
+            } else {
+                deviceNameTitle.text = "Чат с: $currentRemoteName (Отключен)"
+                deviceNameTitle.setTextColor(resources.getColor(android.R.color.holo_red_dark, theme))
+
+                // Блокируем интерфейс ввода при обрыве
+                messageInput.isEnabled = false
+                btnSend.isEnabled = false
+                btnOpenDrawing.isEnabled = false
+                drawingContainer.visibility = View.GONE
+
+                Toast.makeText(this, "Связь с собеседником потеряна", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -187,10 +214,16 @@ class MessageActivity : AppCompatActivity() {
 
     private fun listenForMessages() {
         Thread {
+            // При успешном запуске чтения выставляем статус "В сети"
+            updateConnectionStatus(true)
+
             while (isListening) {
                 try {
                     val type = inputStream?.read() ?: -1
-                    if (type == -1) break
+                    if (type == -1) {
+                        updateConnectionStatus(false)
+                        break
+                    }
 
                     when (type.toByte()) {
                         TYPE_NAME -> {
@@ -199,9 +232,7 @@ class MessageActivity : AppCompatActivity() {
                             inputStream?.read(buffer)
                             val remoteName = String(buffer, Charsets.UTF_8)
                             currentRemoteName = remoteName
-                            runOnUiThread {
-                                deviceNameTitle.text = "Чат с: $remoteName"
-                            }
+                            updateConnectionStatus(true)
                         }
                         TYPE_TEXT -> {
                             val len1 = inputStream?.read() ?: 0
@@ -211,7 +242,10 @@ class MessageActivity : AppCompatActivity() {
                             var totalRead = 0
                             while (totalRead < len) {
                                 val r = inputStream?.read(buffer, totalRead, len - totalRead) ?: -1
-                                if (r == -1) break
+                                if (r == -1) {
+                                    updateConnectionStatus(false)
+                                    return@Thread
+                                }
                                 totalRead += r
                             }
                             val text = String(buffer, Charsets.UTF_8)
@@ -228,14 +262,20 @@ class MessageActivity : AppCompatActivity() {
                             var bytesRead = 0
                             while (bytesRead < size) {
                                 val result = inputStream?.read(buffer, bytesRead, size - bytesRead) ?: -1
-                                if (result == -1) break
+                                if (result == -1) {
+                                    updateConnectionStatus(false)
+                                    return@Thread
+                                }
                                 bytesRead += result
                             }
                             val bitmap = BitmapFactory.decodeByteArray(buffer, 0, buffer.size)
                             runOnUiThread { updateUI(Message(image = bitmap, isMine = false)) }
                         }
                     }
-                } catch (e: Exception) { break }
+                } catch (e: Exception) {
+                    updateConnectionStatus(false)
+                    break
+                }
             }
         }.start()
     }
@@ -251,6 +291,7 @@ class MessageActivity : AppCompatActivity() {
         isListening = false
     }
 }
+
 // Теперь класс называется ChatMessageAdapter
 class ChatMessageAdapter(context: Context, private val objects: List<Message>) :
     ArrayAdapter<Message>(context, R.layout.item_message, objects) {
