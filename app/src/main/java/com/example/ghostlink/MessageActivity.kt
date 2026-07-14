@@ -83,7 +83,10 @@ class MessageActivity : AppCompatActivity() {
 
         if (socket != null && socket.isConnected) {
             try {
+                // Если имя уже было сохранено в сервисе ранее, показываем его сразу
+                currentRemoteName = BluetoothService.remoteDeviceName ?: "Подключение..."
                 deviceNameTitle.text = currentRemoteName
+
                 outputStream = socket.outputStream
                 inputStream = socket.inputStream
                 listenForMessages()
@@ -232,6 +235,10 @@ class MessageActivity : AppCompatActivity() {
                             inputStream?.read(buffer)
                             val remoteName = String(buffer, Charsets.UTF_8)
                             currentRemoteName = remoteName
+
+                            // Сохраняем имя в синглтон, чтобы MainActivity его знала
+                            BluetoothService.remoteDeviceName = remoteName
+
                             updateConnectionStatus(true)
                         }
                         TYPE_TEXT -> {
@@ -289,6 +296,7 @@ class MessageActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         isListening = false
+        // ВАЖНО: Мы больше НЕ закрываем сокет здесь, чтобы соединение жило в фоне!
     }
 }
 

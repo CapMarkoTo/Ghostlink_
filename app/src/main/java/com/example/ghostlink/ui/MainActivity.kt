@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -28,11 +29,20 @@ import androidx.transition.Fade
 import androidx.transition.TransitionManager
 import androidx.transition.TransitionSet
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.navigation.NavigationView
 
 class MainActivity : AppCompatActivity() {
     private var bluetoothAdapter: BluetoothAdapter? = null
     private lateinit var navigationView: NavigationView
+
+    // Переменные для управления карточкой возврата
+    private lateinit var activeChatCard: MaterialCardView
+    private lateinit var activeChatDesc: TextView
+    private lateinit var btnReturnToChat: MaterialButton
+    private lateinit var btnDisconnectChat: Button
+    private lateinit var hostContainer: View
+    private lateinit var btnJoin: MaterialButton
 
     // Переменная для отслеживания состояния анимации кнопок
     private var isMenuExpanded = false
@@ -70,10 +80,17 @@ class MainActivity : AppCompatActivity() {
         val floatingToolbar = findViewById<View>(R.id.floatingToolbar)
         val btnOpenMenu = findViewById<ImageButton>(R.id.btnOpenMenu)
 
+        // Инициализация элементов карточки активного чата
+        activeChatCard = findViewById(R.id.activeChatCard)
+        activeChatDesc = findViewById(R.id.activeChatDesc)
+        btnReturnToChat = findViewById(R.id.btnReturnToChat)
+        btnDisconnectChat = findViewById(R.id.btnDisconnectChat)
+
         // Кнопки и их контейнеры
         val buttonsContainer = findViewById<ViewGroup>(R.id.buttonsContainer)
         val btnHost = findViewById<MaterialButton>(R.id.btnHost)
-        val btnJoin = findViewById<MaterialButton>(R.id.btnJoin)
+        btnJoin = findViewById(R.id.btnJoin)
+        hostContainer = findViewById(R.id.hostContainer)
         val subHostButtons = findViewById<LinearLayout>(R.id.subHostButtons)
         val btnPrivateChat = findViewById<MaterialButton>(R.id.btnPrivateChat)
         val btnGroupChat = findViewById<MaterialButton>(R.id.btnGroupChat)
@@ -157,6 +174,33 @@ class MainActivity : AppCompatActivity() {
             checkPermissionsAndRun { startActivity(Intent(this, DeviceListActivity::class.java)) }
         }
 
+        // Кнопки управления активным чатом
+        btnReturnToChat.setOnClickListener {
+            // Возвращаемся в существующую MessageActivity
+            val intent = Intent(this, MessageActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnDisconnectChat.setOnClickListener {
+            // Полностью закрываем подключение
+            BluetoothService.clearConnection()
+
+            // Скрываем карточку возврата и возвращаем обычные кнопки с анимацией
+            val transition = TransitionSet().apply {
+                ordering = TransitionSet.ORDERING_TOGETHER
+                addTransition(ChangeBounds())
+                addTransition(Fade())
+                duration = 300
+            }
+            TransitionManager.beginDelayedTransition(buttonsContainer, transition)
+
+            activeChatCard.visibility = View.GONE
+            hostContainer.visibility = View.VISIBLE
+            btnJoin.visibility = View.VISIBLE
+
+            Toast.makeText(this, "Подключение закрыто", Toast.LENGTH_SHORT).show()
+        }
+
         // 7. Обработка кнопки Назад (Сворачивание подменю или закрытие Drawer)
         onBackPressedDispatcher.addCallback(this) {
             when {
@@ -200,13 +244,14 @@ class MainActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("GhostPrefs", Context.MODE_PRIVATE)
 
-        // Применяем радиус скругления ко ВСЕМ 4 кнопкам
+        // Применяем радиус скругления ко ВСЕМ кнопкам
         val radius = prefs.getFloat("button_radius", 16f)
         val radiusPx = (radius * resources.displayMetrics.density).toInt()
         findViewById<MaterialButton>(R.id.btnHost).cornerRadius = radiusPx
         findViewById<MaterialButton>(R.id.btnJoin).cornerRadius = radiusPx
         findViewById<MaterialButton>(R.id.btnPrivateChat).cornerRadius = radiusPx
         findViewById<MaterialButton>(R.id.btnGroupChat).cornerRadius = radiusPx
+        btnReturnToChat.cornerRadius = radiusPx
 
         // Применяем тип навигации (Floating vs Drawer)
         val useFloating = prefs.getBoolean("use_floating_toolbar", false)
@@ -222,6 +267,25 @@ class MainActivity : AppCompatActivity() {
             floatingToolbar?.visibility = View.GONE
             btnOpenMenu.visibility = View.VISIBLE
             drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+        }
+
+        // Проверяем, есть ли живое соединение прямо сейчас
+        val buttonsContainer = findViewById<ViewGroup>(R.id.buttonsContainer)
+        if (BluetoothService.isConnectionActive()) {
+            val deviceName = BluetoothService.remoteDeviceName ?: "подключение..."
+            activeChatDesc.text = "Собеседник: $deviceName"
+
+            // Показываем карточку возврата
+            activeChatCard.visibility = View.VISIBLE
+
+            // Скрываем обычные кнопки создания/поиска, чтобы не спамить сокетами
+            hostContainer.visibility = View.GONE
+            btnJoin.visibility = View.GONE
+        } else {
+            // Если соединения нет, прячем карточку и показываем кнопки
+            activeChatCard.visibility = View.GONE
+            hostContainer.visibility = View.VISIBLE
+            btnJoin.visibility = View.VISIBLE
         }
 
         navigationView.setCheckedItem(R.id.nav_home)
