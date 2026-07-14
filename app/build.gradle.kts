@@ -44,7 +44,10 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
+
+    // Подключаем современную версию Material, где точно есть Wavy Progress Indicator
+    implementation("com.google.android.material:material:1.13.0-alpha05")
+
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     testImplementation(libs.junit)

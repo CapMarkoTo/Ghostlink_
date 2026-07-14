@@ -13,14 +13,10 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.view.View
-import android.view.animation.LinearInterpolator
-import android.animation.ValueAnimator
-import android.animation.ObjectAnimator
-import android.graphics.*
-import android.graphics.drawable.Drawable
 import android.util.TypedValue
+import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.FrameLayout
 import android.widget.ListView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -28,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import java.util.UUID
 
 class DeviceListActivity : AppCompatActivity() {
@@ -37,8 +34,7 @@ class DeviceListActivity : AppCompatActivity() {
     private val discoveredDevices = mutableListOf<BluetoothDevice>()
     private val deviceNames = mutableListOf<String>()
 
-    private var shapeAnimator: ValueAnimator? = null
-    private var rotateAnimator: ObjectAnimator? = null
+    private lateinit var searchAnimationContainer: FrameLayout
 
     private val MY_UUID: UUID = UUID.fromString("8ce255c0-200a-11e0-ac64-0800200c9a66")
 
@@ -53,6 +49,44 @@ class DeviceListActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top + 20, systemBars.right, systemBars.bottom)
             insets
         }
+
+        // Находим контейнер, куда поместим индикатор
+        searchAnimationContainer = findViewById(R.id.searchAnimationContainer)
+
+        // Безопасно собираем волновой индикатор через явные вызовы Java-методов
+        val searchAnimationView = try {
+            CircularProgressIndicator(
+                this,
+                null,
+                com.google.android.material.R.attr.circularProgressIndicatorStyle
+            ).apply {
+                // Переводим все размеры в Int пиксели, так как этого требуют методы Material 3
+                val amplitude = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2.0f, resources.displayMetrics).toInt()
+                val wavelength = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10f, resources.displayMetrics).toInt()
+                val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, resources.displayMetrics).toInt()
+                val thickness = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3f, resources.displayMetrics).toInt()
+
+                // Используем явные сеттеры базового класса, чтобы IDE не ругалась на свойства
+                setIndicatorSize(size)
+                setTrackThickness(thickness)
+                setWaveAmplitude(amplitude)
+                setWavelengthIndeterminate(wavelength)
+
+                isIndeterminate = true
+            }
+        } catch (e: Throwable) {
+            // Если Expressive Wavy методы не слинковались, создаем классический круг
+            CircularProgressIndicator(this).apply {
+                val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, resources.displayMetrics).toInt()
+                val thickness = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3f, resources.displayMetrics).toInt()
+                setIndicatorSize(size)
+                setTrackThickness(thickness)
+                isIndeterminate = true
+            }
+        }
+
+        // Добавляем созданную вьюшку в наш контейнер
+        searchAnimationContainer.addView(searchAnimationView)
 
         val bluetoothManager = getSystemService(BluetoothManager::class.java)
         bluetoothAdapter = bluetoothManager?.adapter
@@ -73,42 +107,14 @@ class DeviceListActivity : AppCompatActivity() {
     }
 
     private fun startSearchAnimation() {
-        val animView = findViewById<View>(R.id.searchAnimationView) ?: return
-        animView.visibility = View.VISIBLE
-
-        val typedValue = TypedValue()
-        val colorPrimary = if (theme.resolveAttribute(androidx.appcompat.R.attr.colorPrimary, typedValue, true)) {
-            typedValue.data
-        } else {
-            Color.parseColor("#6200EE")
-        }
-
-        val morphingDrawable = MorphingDrawable(colorPrimary)
-        animView.background = morphingDrawable
-
-        shapeAnimator = ValueAnimator.ofFloat(0f, 3f).apply {
-            duration = 2500
-            repeatCount = ValueAnimator.INFINITE
-            interpolator = LinearInterpolator()
-            addUpdateListener { animator ->
-                morphingDrawable.progress = animator.animatedValue as Float
-            }
-            start()
-        }
-
-        rotateAnimator = ObjectAnimator.ofFloat(animView, "rotation", 0f, 360f).apply {
-            duration = 3000
-            repeatCount = ValueAnimator.INFINITE
-            interpolator = LinearInterpolator()
-            start()
+        runOnUiThread {
+            searchAnimationContainer.visibility = View.VISIBLE
         }
     }
 
     private fun stopSearchAnimation() {
         runOnUiThread {
-            shapeAnimator?.cancel()
-            rotateAnimator?.cancel()
-            findViewById<View>(R.id.searchAnimationView)?.visibility = View.GONE
+            searchAnimationContainer.visibility = View.GONE
         }
     }
 
@@ -185,74 +191,4 @@ class DeviceListActivity : AppCompatActivity() {
             unregisterReceiver(receiver)
         } catch (e: Exception) {}
     }
-}
-
-class MorphingDrawable(private val color: Int) : Drawable() {
-    private val path = Path()
-    private val paint = Paint().apply {
-        color = this@MorphingDrawable.color
-        isAntiAlias = true
-        style = Paint.Style.FILL
-    }
-
-    var progress: Float = 0f
-        set(value) {
-            field = value
-            invalidateSelf()
-        }
-
-    override fun draw(canvas: Canvas) {
-        val width = bounds.width().toFloat()
-        val height = bounds.height().toFloat()
-        val cx = width / 2f
-
-        path.reset()
-
-        val p1: PointF; val p2: PointF; val p3: PointF; val p4: PointF
-        val currentRadius: Float
-
-        when {
-            progress <= 1f -> {
-                p1 = PointF(0f, 0f); p2 = PointF(width, 0f)
-                p3 = PointF(width, height); p4 = PointF(0f, height)
-                currentRadius = cx * (1f - progress)
-            }
-            progress <= 2f -> {
-                val p = progress - 1f
-                p1 = lerp(PointF(0f, 0f), PointF(cx, 0f), p)
-                p2 = lerp(PointF(width, 0f), PointF(cx, 0f), p)
-                p3 = PointF(width, height)
-                p4 = PointF(0f, height)
-                currentRadius = 15f
-            }
-            else -> {
-                val p = progress - 2f
-                p1 = lerp(PointF(cx, 0f), PointF(0f, 0f), p)
-                p2 = lerp(PointF(cx, 0f), PointF(width, 0f), p)
-                p3 = PointF(width, height)
-                p4 = PointF(0f, height)
-                currentRadius = 15f + (cx - 15f) * p
-            }
-        }
-
-        paint.pathEffect = CornerPathEffect(Math.max(currentRadius, 8f))
-        path.moveTo(p1.x, p1.y)
-        path.lineTo(p2.x, p2.y)
-        path.lineTo(p3.x, p3.y)
-        path.lineTo(p4.x, p4.y)
-        path.close()
-
-        canvas.drawPath(path, paint)
-    }
-
-    private fun lerp(start: PointF, end: PointF, fraction: Float): PointF {
-        return PointF(
-            start.x + fraction * (end.x - start.x),
-            start.y + fraction * (end.y - start.y)
-        )
-    }
-
-    override fun setAlpha(alpha: Int) { paint.alpha = alpha }
-    override fun setColorFilter(colorFilter: ColorFilter?) { paint.colorFilter = colorFilter }
-    override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 }

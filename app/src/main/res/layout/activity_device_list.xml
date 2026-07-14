@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -27,23 +28,22 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <View
-            android:id="@+id/searchAnimationView"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+        <FrameLayout
+            android:id="@+id/searchAnimationContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginStart="14dp"
             android:visibility="gone" />
-    </LinearLayout>
 
-    <ListView
-        android:id="@+id/devicesListView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingHorizontal="24dp"
-        android:clipToPadding="false"
-        android:divider="@android:color/transparent"
-        android:dividerHeight="8dp"
-        android:layoutAnimation="@anim/layout_animation_fall_down" />
+    </LinearLayout> <ListView
+    android:id="@+id/devicesListView"
+    android:layout_width="match_parent"
+    android:layout_height="0dp"
+    android:layout_weight="1"
+    android:paddingHorizontal="24dp"
+    android:clipToPadding="false"
+    android:divider="@android:color/transparent"
+    android:dividerHeight="8dp"
+    android:layoutAnimation="@anim/layout_animation_fall_down" />
 
 </LinearLayout>
