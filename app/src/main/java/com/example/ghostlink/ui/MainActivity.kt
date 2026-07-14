@@ -105,7 +105,7 @@ class MainActivity : AppCompatActivity() {
             // Отступ контента сверху (чтобы не залез под статус-бар)
             mainLayout.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
 
-            // Поднимаем Floating Toolbar над системными кнопками навигации
+
             val density = resources.displayMetrics.density
             val margin32dp = (32 * density).toInt()
             val params = floatingToolbar.layoutParams as? ViewGroup.MarginLayoutParams
