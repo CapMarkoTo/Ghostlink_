@@ -290,4 +290,4 @@ class MainActivity : AppCompatActivity() {
 
         navigationView.setCheckedItem(R.id.nav_home)
     }
-}
+}// hah
