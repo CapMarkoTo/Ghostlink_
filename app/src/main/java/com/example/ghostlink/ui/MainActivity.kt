@@ -51,6 +51,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var titleText: TextView
     private lateinit var contentContainer: ViewGroup
 
+    // Слайдеры для волновой анимации
+    private lateinit var sliderWaveAmplitude: Slider
+    private lateinit var sliderWaveLength: Slider
+
     // Состояние экранов
     private var isSettingsVisible = false
     private var isMenuExpanded = false
@@ -116,6 +120,10 @@ class MainActivity : AppCompatActivity() {
         val switchNotif = findViewById<MaterialSwitch>(R.id.switchNotifications)
         val btnSaveSettings = findViewById<MaterialButton>(R.id.btnSaveSettings)
 
+        // Новые слайдеры для волновой анимации
+        sliderWaveAmplitude = findViewById(R.id.sliderWaveAmplitude)
+        sliderWaveLength = findViewById(R.id.sliderWaveLength)
+
         // Кнопки на Floating Toolbar
         val btnNavHome = findViewById<ImageButton>(R.id.btnNavHome)
         val btnNavSettings = findViewById<ImageButton>(R.id.btnNavSettings)
@@ -146,6 +154,10 @@ class MainActivity : AppCompatActivity() {
         sliderCorner.value = prefs.getFloat("button_radius", 16f)
         switchNavType.isChecked = prefs.getBoolean("use_floating_toolbar", false)
         switchNotif.isChecked = prefs.getBoolean("notifications_enabled", true)
+
+        // Загружаем сохраненные значения волны (или берем дефолтные)
+        sliderWaveAmplitude.value = prefs.getFloat("wave_amplitude_factor", 2.0f)
+        sliderWaveLength.value = prefs.getFloat("wave_length_factor", 10.0f)
 
         // Инициализация бокового меню (Drawer)
         btnOpenMenu.setOnClickListener {
@@ -188,6 +200,11 @@ class MainActivity : AppCompatActivity() {
                     putFloat("button_radius", sliderCorner.value)
                     putBoolean("use_floating_toolbar", switchNavType.isChecked)
                     putBoolean("notifications_enabled", switchNotif.isChecked)
+
+                    // Сохраняем новые настройки волны
+                    putFloat("wave_amplitude_factor", sliderWaveAmplitude.value)
+                    putFloat("wave_length_factor", sliderWaveLength.value)
+
                     apply()
                 }
                 Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show()
@@ -389,6 +406,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        // Перечитываем имя кэша (чтобы настройки волновой анимации подхватывались именно из "GhostPrefs")
+        val prefs = getSharedPreferences("GhostPrefs", Context.MODE_PRIVATE)
+        val savedAmplitude = prefs.getFloat("wave_amplitude_factor", 2.0f)
+        val savedWavelength = prefs.getFloat("wave_length_factor", 10.0f)
+
+        // Синхронизируем настройки для DeviceListActivity (копируем их в shared preferences по умолчанию "app_settings")
+        getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit().apply {
+            putFloat("wave_amplitude_factor", savedAmplitude)
+            putFloat("wave_length_factor", savedWavelength)
+            apply()
+        }
+
         applyThemeSettings()
 
         // Проверяем, активно ли Bluetooth соединение

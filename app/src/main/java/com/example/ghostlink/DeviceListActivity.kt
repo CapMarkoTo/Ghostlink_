@@ -53,6 +53,11 @@ class DeviceListActivity : AppCompatActivity() {
         // Находим контейнер, куда поместим индикатор
         searchAnimationContainer = findViewById(R.id.searchAnimationContainer)
 
+        // Достаем сохраненные пользователем параметры (или ставим дефолтные 2.0f и 10.0f)
+        val prefs = getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+        val savedAmplitude = prefs.getFloat("wave_amplitude_factor", 2.0f)
+        val savedWavelength = prefs.getFloat("wave_length_factor", 10.0f)
+
         // Безопасно собираем волновой индикатор через явные вызовы Java-методов
         val searchAnimationView = try {
             CircularProgressIndicator(
@@ -60,13 +65,13 @@ class DeviceListActivity : AppCompatActivity() {
                 null,
                 com.google.android.material.R.attr.circularProgressIndicatorStyle
             ).apply {
-                // Переводим все размеры в Int пиксели, так как этого требуют методы Material 3
-                val amplitude = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2.0f, resources.displayMetrics).toInt()
-                val wavelength = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10f, resources.displayMetrics).toInt()
+                // Используем сохраненные значения для расчета физического размера волн в пикселях
+                val amplitude = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, savedAmplitude, resources.displayMetrics).toInt()
+                val wavelength = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, savedWavelength, resources.displayMetrics).toInt()
                 val size = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 24f, resources.displayMetrics).toInt()
                 val thickness = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3f, resources.displayMetrics).toInt()
 
-                // Используем явные сеттеры базового класса, чтобы IDE не ругалась на свойства
+                // Устанавливаем параметры индикатора
                 setIndicatorSize(size)
                 setTrackThickness(thickness)
                 setWaveAmplitude(amplitude)
