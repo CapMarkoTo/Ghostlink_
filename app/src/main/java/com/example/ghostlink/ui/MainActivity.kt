@@ -59,13 +59,18 @@ class MainActivity : AppCompatActivity() {
     private var isSettingsVisible = false
     private var isMenuExpanded = false
 
+    // Массив разрешений с динамической поддержкой уведомлений на Android 13+
     private val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        arrayOf(
+        val list = mutableListOf(
             Manifest.permission.BLUETOOTH_SCAN,
             Manifest.permission.BLUETOOTH_CONNECT,
             Manifest.permission.BLUETOOTH_ADVERTISE,
             Manifest.permission.ACCESS_FINE_LOCATION
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            list.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        list.toTypedArray()
     } else {
         arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
     }
@@ -76,7 +81,7 @@ class MainActivity : AppCompatActivity() {
         if (grants.values.all { it }) {
             Toast.makeText(this, "Разрешения получены", Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Нужны разрешения", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Нужны разрешения для корректной работы", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -84,6 +89,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
+
+        // Инициализируем системный канал для пуш-уведомлений
+        NotificationHelper.createNotificationChannel(this)
 
         // Инициализация UI
         val drawerLayout = findViewById<DrawerLayout>(R.id.drawerLayout)
@@ -120,7 +128,7 @@ class MainActivity : AppCompatActivity() {
         val switchNotif = findViewById<MaterialSwitch>(R.id.switchNotifications)
         val btnSaveSettings = findViewById<MaterialButton>(R.id.btnSaveSettings)
 
-        // Новые слайдеры для волновой анимации
+        // Слайдеры для волновой анимации
         sliderWaveAmplitude = findViewById(R.id.sliderWaveAmplitude)
         sliderWaveLength = findViewById(R.id.sliderWaveLength)
 
@@ -131,7 +139,7 @@ class MainActivity : AppCompatActivity() {
         btnGroupChat.isEnabled = false
         btnGroupChat.alpha = 0.5f
 
-        // Edge-to-Edge настройка отступов
+        // Edge-to-Edge настройка отступов системных баров
         ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             mainLayout.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
@@ -343,17 +351,15 @@ class MainActivity : AppCompatActivity() {
         val btnNavHome = findViewById<ImageButton>(R.id.btnNavHome)
         val btnNavSettings = findViewById<ImageButton>(R.id.btnNavSettings)
 
-        // Достаем цвет Primary (из android.R.attr, который всегда доступен в системе)
         val activeColor = TypedValue().let { typedValue ->
             theme.resolveAttribute(android.R.attr.colorPrimary, typedValue, true)
             typedValue.data
         }
 
-        // Достаем colorOnSurfaceVariant (так как он из Material, используем безопасный MaterialColors хелпер)
         val inactiveColor = com.google.android.material.color.MaterialColors.getColor(
             this,
             com.google.android.material.R.attr.colorOnSurfaceVariant,
-            android.graphics.Color.GRAY // дефолтный цвет на случай, если атрибут не найден
+            android.graphics.Color.GRAY
         )
 
         if (isSettingsVisible) {
@@ -377,7 +383,6 @@ class MainActivity : AppCompatActivity() {
     private fun applyThemeSettings() {
         val prefs = getSharedPreferences("GhostPrefs", Context.MODE_PRIVATE)
 
-        // Извлекаем радиус скругления
         val radius = prefs.getFloat("button_radius", 16f)
         val radiusPx = (radius * resources.displayMetrics.density).toInt()
         findViewById<MaterialButton>(R.id.btnHost).cornerRadius = radiusPx
@@ -386,7 +391,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.btnGroupChat).cornerRadius = radiusPx
         btnReturnToChat.cornerRadius = radiusPx
 
-        // Извлекаем тип навигации
         val useFloating = prefs.getBoolean("use_floating_toolbar", false)
         val floatingToolbar = findViewById<View>(R.id.floatingToolbar)
         val btnOpenMenu = findViewById<ImageButton>(R.id.btnOpenMenu)
@@ -407,12 +411,11 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
 
-        // Перечитываем имя кэша (чтобы настройки волновой анимации подхватывались именно из "GhostPrefs")
         val prefs = getSharedPreferences("GhostPrefs", Context.MODE_PRIVATE)
         val savedAmplitude = prefs.getFloat("wave_amplitude_factor", 2.0f)
         val savedWavelength = prefs.getFloat("wave_length_factor", 10.0f)
 
-        // Синхронизируем настройки для DeviceListActivity (копируем их в shared preferences по умолчанию "app_settings")
+        // Синхронизируем настройки для DeviceListActivity
         getSharedPreferences("app_settings", Context.MODE_PRIVATE).edit().apply {
             putFloat("wave_amplitude_factor", savedAmplitude)
             putFloat("wave_length_factor", savedWavelength)
@@ -434,7 +437,6 @@ class MainActivity : AppCompatActivity() {
             btnJoin.visibility = View.VISIBLE
         }
 
-        // При переходе "извне" возвращаем дефолтное выделение в меню
         navigationView.setCheckedItem(if (isSettingsVisible) R.id.nav_settings else R.id.nav_home)
     }
 }

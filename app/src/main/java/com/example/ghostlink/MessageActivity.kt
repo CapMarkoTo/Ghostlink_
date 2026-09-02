@@ -31,7 +31,11 @@ data class Message(
 
 class MessageActivity : AppCompatActivity() {
 
-    // Переименовали адаптер в ChatMessageAdapter
+    companion object {
+        // Глобальный флаг: видит ли пользователь чат прямо сейчас на экране
+        var isActivityVisible: Boolean = false
+    }
+
     private lateinit var adapter: ChatMessageAdapter
     private val messages = mutableListOf<Message>()
     private var outputStream: OutputStream? = null
@@ -75,7 +79,6 @@ class MessageActivity : AppCompatActivity() {
         val btnSendDrawing = findViewById<Button>(R.id.btnSendDrawing)
         val btnEraser = findViewById<MaterialButton>(R.id.btnEraser)
 
-        // Инициализируем с новым именем класса
         adapter = ChatMessageAdapter(this, messages)
         listView.adapter = adapter
 
@@ -83,7 +86,6 @@ class MessageActivity : AppCompatActivity() {
 
         if (socket != null && socket.isConnected) {
             try {
-                // Если имя уже было сохранено в сервисе ранее, показываем его сразу
                 currentRemoteName = BluetoothService.remoteDeviceName ?: "Подключение..."
                 deviceNameTitle.text = currentRemoteName
 
@@ -159,7 +161,6 @@ class MessageActivity : AppCompatActivity() {
                 deviceNameTitle.text = "Чат с: $currentRemoteName (Отключен)"
                 deviceNameTitle.setTextColor(resources.getColor(android.R.color.holo_red_dark, theme))
 
-                // Блокируем интерфейс ввода при обрыве
                 messageInput.isEnabled = false
                 btnSend.isEnabled = false
                 btnOpenDrawing.isEnabled = false
@@ -217,7 +218,6 @@ class MessageActivity : AppCompatActivity() {
 
     private fun listenForMessages() {
         Thread {
-            // При успешном запуске чтения выставляем статус "В сети"
             updateConnectionStatus(true)
 
             while (isListening) {
@@ -236,9 +236,7 @@ class MessageActivity : AppCompatActivity() {
                             val remoteName = String(buffer, Charsets.UTF_8)
                             currentRemoteName = remoteName
 
-                            // Сохраняем имя в синглтон, чтобы MainActivity его знала
                             BluetoothService.remoteDeviceName = remoteName
-
                             updateConnectionStatus(true)
                         }
                         TYPE_TEXT -> {
@@ -256,6 +254,16 @@ class MessageActivity : AppCompatActivity() {
                                 totalRead += r
                             }
                             val text = String(buffer, Charsets.UTF_8)
+
+                            // ЕСЛИ ПРИЛОЖЕНИЕ В ФОНЕ — отправляем системное уведомление
+                            if (!isActivityVisible) {
+                                NotificationHelper.showMessageNotification(
+                                    applicationContext,
+                                    currentRemoteName,
+                                    text
+                                )
+                            }
+
                             runOnUiThread { updateUI(Message(text = text, isMine = false)) }
                         }
                         TYPE_IMAGE -> {
@@ -276,6 +284,16 @@ class MessageActivity : AppCompatActivity() {
                                 bytesRead += result
                             }
                             val bitmap = BitmapFactory.decodeByteArray(buffer, 0, buffer.size)
+
+                            // ЕСЛИ ПРИЛОЖЕНИЕ В ФОНЕ — уведомляем о новом рисунке
+                            if (!isActivityVisible) {
+                                NotificationHelper.showMessageNotification(
+                                    applicationContext,
+                                    currentRemoteName,
+                                    "🎨 Отправил(а) вам рисунок"
+                                )
+                            }
+
                             runOnUiThread { updateUI(Message(image = bitmap, isMine = false)) }
                         }
                     }
@@ -293,14 +311,22 @@ class MessageActivity : AppCompatActivity() {
         findViewById<ListView>(R.id.chatListView).setSelection(messages.size - 1)
     }
 
+    override fun onResume() {
+        super.onResume()
+        isActivityVisible = true // Юзер открыл чат, фоновые пуши не нужны
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isActivityVisible = false // Чат свернут, включаем режим пушей
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         isListening = false
-        // ВАЖНО: Мы больше НЕ закрываем сокет здесь, чтобы соединение жило в фоне!
     }
 }
 
-// Теперь класс называется ChatMessageAdapter
 class ChatMessageAdapter(context: Context, private val objects: List<Message>) :
     ArrayAdapter<Message>(context, R.layout.item_message, objects) {
 
